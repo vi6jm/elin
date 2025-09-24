@@ -43,7 +43,7 @@
                 name (-> path (: :gsub ".*/" "") (: :gsub "%.fnl$" ""))]
             (vim.lsp.config name config)))))
 
-(fn do-undo-ftplugin [ev typ]
+(fn do-undo-ft-plugin [ev typ]
   "helper for b:undo_{ftplugin,indent}_{fnl,lua}"
   (let [undo-fnl (. vim.b ev.buf (.. :undo_ typ :_fnl))
         undo-lua (. vim.b ev.buf (.. :undo_ typ :_lua))]
@@ -52,25 +52,26 @@
           (= (type undo-fnl) :function) (try #(undo-fnl))
           (= (type undo-lua) :string) (try #(vim.fn.luaeval undo-lua nil))
           (= (type undo-lua) :function) (try #(undo-lua)))
+      ;; unset OUR b:undo_{ftplugin,indent}s AND VIM's
       (tset vim.b ev.buf (:undo_ typ :_fnl) nil)
-      (tset vim.b ev.buf (:undo_ typ :_lua) nil))))
+      (tset vim.b ev.buf (:undo_ typ :_lua) nil)
+      (tset vim.b ev.buf (:undo_ typ) nil))))
 
 ;; todo: for ftplugin/indent/syntax, split &ft on '.'
+;; todo: this gets loaded multiple times. find how to prevent (time + state)
 ;; ftplugin or indent filetype plugin
 (fn do-ft-plugin [ev typ]
   "load {,after}/{ftplugin,indent}/*.fnl when b:did_{ftplugin,indent} = 0"
-  (let [did (. vim.b ev.buf (.. :did_ typ))
-        glob (-> (.. typ :/ ev.match :.fnl)
+  (let [glob (-> (.. typ :/ ev.match :.fnl)
                  (vim.api.nvim_get_runtime_file false)
                  (. 1))
-        aglob (-> (.. :after/ typ ev.match :.fnl)
+        aglob (-> (.. :after/ typ :/ ev.match :.fnl)
                   (vim.api.nvim_get_runtime_file false)
                   (. 1))]
-    (when (or (= did 0) (= did nil))
-      (case glob
-        path (try #(fennel.dofile path)))
-      (case aglob
-        path (try #(fennel.dofile path))))))
+    (case glob
+      path (try #(fennel.dofile path)))
+    (case aglob
+      path (try #(fennel.dofile path)))))
 
 ;; syntax "filetype plugin"
 (fn do-syntax [ev]
@@ -93,10 +94,10 @@
         syn-on (let [on vim.g.syntax_on] (or (= on 1) (= on true)))]
     ;; todo: ? &cpo =~ 'S' => unlet b:did_ftplugin
     (when ftp-on
-      (do-undo-ftplugin ev :ftplugin)
+      (do-undo-ft-plugin ev :ftplugin)
       (do-ft-plugin ev :ftplugin)
       (when ind-on
-        (do-undo-ftplugin ev :indent)
+        (do-undo-ft-plugin ev :indent)
         (do-ft-plugin ev :indent)))
     (when syn-on
       (do-syntax ev))))
