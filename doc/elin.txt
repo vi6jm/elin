@@ -12,8 +12,8 @@
 About                                                           *elin-about*
 
 Elin enhances neovim with seamless fennel configuration. Just write `.fnl`
-files where you would normally write `.lua` or `.vim` functions. For more
-information, see |elin-config|.
+files where you would normally write `.lua` or `.vim` files For more info,
+see |elin-config|.
 
 Fennel is a lisp that compiles directly to lua or evaluates fennel using a lua
 interpretter. Elin uses neovim's |lua-luajit| to bootstrap fennel on top and
