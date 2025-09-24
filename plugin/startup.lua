@@ -92,7 +92,7 @@ for _, path in ipairs(all_rtp_files("lsp/*.fnl")) do
   end
   try(_10_)
 end
-local function do_undo_ft_plugin(ev, typ)
+local function undo_ft_plugin(ev, typ)
   local undo_fnl = vim.b[ev.buf][("undo_" .. typ .. "_fnl")]
   local undo_lua = vim.b[ev.buf][("undo_" .. typ .. "_lua")]
   if (undo_fnl or undo_lua) then
@@ -120,7 +120,6 @@ local function do_undo_ft_plugin(ev, typ)
     end
     vim.b[ev.buf][("undo_")(typ, "_fnl")] = nil
     vim.b[ev.buf][("undo_")(typ, "_lua")] = nil
-    vim.b[ev.buf][("undo_")(typ)] = nil
     return nil
   else
     return nil
@@ -185,10 +184,10 @@ local function do_filetype_plugins(ev)
     syn_on = ((on == 1) or (on == true))
   end
   if ftp_on then
-    do_undo_ft_plugin(ev, "ftplugin")
+    undo_ft_plugin(ev, "ftplugin")
     do_ft_plugin(ev, "ftplugin")
     if ind_on then
-      do_undo_ft_plugin(ev, "indent")
+      undo_ft_plugin(ev, "indent")
       do_ft_plugin(ev, "indent")
     else
     end
