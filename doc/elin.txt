@@ -1,0 +1,215 @@
+*elin.txt*            Extensible Lisp Integration for Neovim          *elin* >
+                                 ,dPb,    |
+                                 IP"Yb   -*-
+                        |        I8 8P gg |
+                       -*-       db 8I ""             |
+                        |  ,gg,  d8 8" gg  ,gg, ,gg  -*-
+                          i8" 8i I8dP  88 ,8PY8YP"g8, |
+                          8I ,8I I8P   d8 I8  8I   8i
+                        _,Igd8P,,d8b,_,88,dP  8I   "8,
+                       888P""Y888P'"Y8P""8P'  8I    "8i
+==============================================================================
+About                                                           *elin-about*
+
+Elin enhances neovim with seamless fennel configuration. Just write `.fnl`
+files where you would normally write `.lua` or `.vim` functions. For more
+information, see |elin-config|.
+
+Fennel is a lisp that compiles directly to lua or evaluates fennel using a lua
+interpretter. Elin uses neovim's |lua-luajit| to bootstrap fennel on top and
+tries to make it as comfortable to use `.fnl` files as it is to use `.lua`
+files everywhere.
+
+There are also some nice commands for evaluating fennel in various ways. Check
+out |fennel-commands|.
+
+See |elin-api.txt| for elin's api used in |compile-nvim|.
+
+Better features coming soon!
+- support "." in 'filetype' during ftplugin
+- cache on write (also check timestamps at <insert time> (init? ftplugin?)?)
+- find+remember cached elin-rtp files and don't duplicate during INIT/ftplugin
+- sanity macros to fix vim + vimL <- neovim + lua <- fennel pipeline nightmare
+- a separate package manager integrating with |pack| + |elin| w lazy loading
+- etc!
+
+==============================================================================
+Compile Neovim                                  *use-elin-rtp*  *compile-nvim*
+
+  -------------------------------- WARNING: --------------------------------
+                                  DO NOT USE
+    This is not fully implemented. It will cause duplicate loading during
+     INIT and ftplugin because elin will load the fennel and neovim will
+     load the lua file. This functionality and the documentation serve as
+                                stubs for now.
+  -------------------------------- WARNING: --------------------------------
+
+If you want to use compiled lua files in elin-rtp, use >fennel
+  ;; init.fnl
+  (let [{: compile-nvim : use-elin-rtp}]
+    (compile-nvim)
+    (use-elin-rtp))
+
+Respectively, these commands backup elin-rtp then one-shot compile all fennel
+files to elin-rtp (via |elin.compile-all|) and add elin's rtp cache to nvim's
+'rtp'.
+
+Elin's rtp cache is located at the following directory:     *elin-rtp* >fennel
+  (.. (vim.stdpath :cache) :/elin-rtp/)
+
+==============================================================================
+Fennel Commands                                              *fennel-commands*
+
+:Fnl [x] {expr}           Evaluate {expr} [into register x].            *:Fnl*
+:FnlDofile {file}         Evaluate {file}.                        *:FnlDofile*
+:FnlDofileReg [x] {file}  Evaluate {file} [into register x].   *:FnlDofileReg*
+:[range]FnlDolines [x]    Evaluate [range] [into register x].    *:FnlDolines*
+
+Examples: >vim
+  :Fnl (print "hello from fennel")
+  " evaluate (+ 2 3) to @a register and :put @a register
+  :Fnl a(+ 2 3)
+  :put a
+   " evaluate current paragraph into PRIMARY clipboard
+  :'{,'}FnlDolines +
+
+Note: These commands (except |:FnlDolines|) gobble |bar| like those listed in
+      |:bar|.
+
+Note: `:FnlDofileReg foo.fnl` actually evaluates the file `oo.fnl` into
+      register `f`, hence the separate command. Use carefully.
+==============================================================================
+Elin Configuration                                               *elin-config*
+
+Note: Here {config} is the equal to what you see when you do: >vim
+        :echo stdpath("config")  " ~/.config/nvim on unix-y systems
+
+Note: INIT below refers to elin's initialization, which happens when
+      `plugin/startup.lua` is loaded during nvim's |startup|.
+
+If you are already familiar with vim's directory structure, then all you need
+to know is that anywhere you can use a `.lua` or `.vim` file, you can use a
+`.fnl` file instead, and elin will use it appropriately. This does not apply
+to `colors/*.fnl` because we cannot intercept |:colorscheme| on |E185|.
+
+init.fnl, plugin, and lsp files are sourced in order during INIT:
+1. |init.fnl|          one file
+2. |plugin.fnl|        any depth
+3. |after-plugin.fnl|  any depth
+4. |lsp.fnl|           depth=1
+
+When filetype is set, ftplugins and syntax are triggered:
+1. |undo_ftplugin_fnl|
+3. |ftplugin.fnl|
+4. |after-ftplugin.fnl
+5. |syntax.fnl|
+6. |after-syntax.fnl
+
+
+{config}/init.fnl                                                   *init.fnl*
+
+  If there is no |init.lua| or |init.vim|, elin will load |init.fnl| if it
+  exists. Ie, |init.fnl| has the lowest priority. This can't happen during
+  |startup|, but it does happen just after.
+
+  If you want to change the defaults, use |elin.setup|. Eg: >fennel
+    ;; init.fnl
+    (let [{: setup} (require :elin)]
+      (setup {:verbose false}))
+    (require :say-hi)
+
+
+{config}/plugin/**/*.fnl                                          *plugin.fnl*
+{config}/after/plugin/**/*.fnl                              *after-plugin.fnl*
+
+  Plugins are loaded during INIT: >fennel
+    ;; plugin/opts.fnl
+    (set [vim.o.ts vim.o.sts vim.o.et vim.o.sw] [2 2 true 0])
+<
+  Disable with |--noplugin| or 'loadplugins'.  Since, |init.fnl| is loaded
+  first, you can disable them if desired: >fennel
+    ;; init.fnl
+    (set vim.o.loadplugins false)
+
+
+{config}/lsp/*.fnl                                                   *lsp.fnl*
+
+  LSP configurations are extracted and loaded via |vim.lsp.config|: >fennel
+    ;; lsp/fennel_ls.fnl
+    {:lua-version :intersection :lints {:not-enough-arguments true}}
+
+
+b:undo_ftplugin_fnl                                        *undo_ftplugin_fnl*
+b:undo_ftplugin_lua                                        *undo_ftplugin_lua*
+
+  Set b:undo_ftplugin_fnl to a fennel expression (string) or fennel function
+  (lua). b:undo_ftplugin_lua is the same but for lua expressions and
+  functions. See just below for example usage.
+
+{config}/ftplugin/*.fnl                                         *ftplugin.fnl*
+{config}/after/ftplugin/*.fnl                             *after-ftplugin.fnl*
+
+  A corresponding filetype plugin is loaded when 'filetype' is set where `*`
+  is the 'filetype': >fennel
+    ;; after/ftplugin/fennel.fnl
+    (set vim.bo.formatprg "fnlfmt -")
+    (set vim.b.undo_ftplugin_fnl "(set vim.bo.fp nil)")
+<
+  To disable (see |:filetype-plugin-off|, |:filetype-indent-off|): >fennel
+    ;; init.fnl
+    (vim.cmd.filetype "plugin off") ;; disables BOTH ftplugin/ AND indent/
+    (vim.cmd.filetype "indent off") ;; disables indent/
+    ;; Note: these disable for .lua, .vim, and .fnl files
+<
+  Warning: a 'filetype' with a "." is not supported yet but will be soon!
+
+
+{config}/syntax/*.fnl                                             *syntax.fnl*
+{config}/after/syntax/*.fnl                                 *after/syntax.fnl*
+
+  This isn't very useful because LSP replaced it :) >fennel
+    ;; after/syntax/fennel.fnl
+    (vim.opt_local.iskeyword:remove 45) ;; remove "-" from &isk (don't)
+    (vim.cmd.syntax "keyword FennelSpecialForm vim")
+<
+  Disable syntax (see |syntax-off|): >fennel
+    ;; init.fnl
+    (vim.cmd.syntax :off)
+    ;; Note: this disables syntax for .lua, .vim, and .fnl files
+
+==============================================================================
+<3                                                             *elin-thanks*
+
+A special thanks to the fennel contributers and hotpot.nvim for the hard work
+necessary to make this project viable and inspiration. Thanks also to
+fennel-ls and fennel-ls-nvim-docs.
+
+https://fennel-lang.org/                              |
+https://git.sr.ht/~xerool/fennel-ls                  -*-
+https://github.com/rktjmp/hotpot.nvim                 |
+https://dev.fennel-lang.org/wiki/WikiStart
+https://git.sr.ht/~micampe/fennel-ls-nvim-docs
+
+Thanks also to other projects that bring fennel into neovim. You all make the
+fennel ecosystem a little brighter.
+                                              |
+https://github.com/Olical/aniseed            -*-
+https://github.com/gpanders/nvim-moonwalk     |                    |
+https://github.com/alexaandru/fennel-nvim                         -*-
+https://github.com/udayvir-singh/tangerine.nvim                    |
+
+==============================================================================
+Lore                                                             *elin-lore*
+
+In addition to an acronym, Elin is a name that means "shining" or "brilliant".
+In other words, it brings a little light from the world of lisp into neovim.
+
+Conversely, ~evil-mode~ steals some good vim concepts and embeds them into its
+dark world of ~emacs~. ;)
+
+Pronounce the plugin name however you want! I pronounce it /ee-lin/ (like
+elisp), but the name is probably pronounced /eh-lin/ :)
+
+==============================================================================
+
+ vim:tw=78:ts=2:et:ft=help:norl:
