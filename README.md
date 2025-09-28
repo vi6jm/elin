@@ -2,63 +2,89 @@ elin
 ====
 *Extensible Lisp Integration for Neovim*
 
-**Requirements:** +v0.8.0
+**Requirements:** Neovim +v0.8.0
 
 About
 -----
-
-Elin enhances neovim with seamless fennel configuration. Just write `.fnl` files
-where you would normally write `.lua` or `.vim` files.
+Elin enhances neovim with seamless fennel configuration. Just write `.fnl`
+files where you would normally write `.lua` or `.vim` files. For more info,
+see [Configuration](#Configuration).
 
 Fennel is a lisp that compiles directly to lua or evaluates fennel using a lua
-interpretter. Elin uses neovim's luajit to bootstrap fennel on top and tries to
-make it as comfortable to use `.fnl` files as it is to use `.lua` files
-everywhere.
+interpreter. Elin uses neovim's luajit to bootstrap fennel on top and
+tries to make it as comfortable to use `.fnl` files as it is to use `.lua`
+files everywhere.
 
-There are also some nice commands for evaluating fennel in various ways.
-
-Better features coming soon!
-- [ ] support "." in 'filetype' during ftplugin
-- [ ] cache on write (also check timestamps at \<insert time\> (init? ftplugin?)?)
-- [ ] find+remember cached elin-rtp files and don't duplicate during INIT/ftplugin
-    - use "strategy" (change in .setup). see strategies below:
-    - "fennel-cache": only load cached lua files if there is a corresponding
-      fennel file in &rtp; cache if timestamp is old(?)
-    - "cache-only": only load cached lua files. new fennel files are cached.
-    - "fennel-only": only load fennel files in config. ignore cache.
-    - "all": load all fennel and lua files (without duplicates). do not cache.
-    - "lua-only": ignore all fennnel files. most of this plugin becomes
-      irrelevant.
-- [ ] sanity macros to fix vim + vimL <- neovim + lua <- fennel pipeline nightmare
-- [ ] a separate package manager integrating with |pack| + |elin| w lazy loading
-- [ ] etc!
+There are also some nice commands for evaluating fennel in various ways. Check
+out [Commands](#Commands)
 
 Installation
 ------------
+
+No lua required:
+
 ```sh
 cd .config/nvim;
 # export elin='https://git.sr.ht/~vi6jm/elin';
 git clone $elin pack/local/start/elin;
 ```
-etc
 
-It uses plugin/ to bootstrap itself.
+
+With a package manager, just install it into `&rtp` however. It uses
+`&rtp/plugin/` to bootstrap itself.
 
 Commands
 --------
 
-| Command | Description |
-|---------|-------------|
-| `:Fnl [x] {expr}`           | Evaluate {expr} \[into register x\]    |
-| `:FnlDofile {file}`         | Evaluate {file}                        |
-| `:FnlDofileReg [x] {file}`  | Evaluate {file} \[into register x\] *  |
-| `:[range]FnlDolines [x]`    | Evaluate \[range\] \[into register x\] |
+- `:Fnl [{redir}] {expr} [{expr} ...]`
+- `:FnlFiles [{redir}] {file} [{file} ...]`
+- `:[range]FnlLines [{redir}]`
+- `:[range]FnlSwiss  [{redir}] ...] [{expr} ...]`
 
-\* Warning: This will (almost always) eat the first letter of `{file}` unless
-you pass a register, since files generaly don't start with "(" or another
-character vim does not treat as a register! The other cmomands are not issues
-because they either must start with a "(" to be a valid fennel expression or do
-not accept arguments.
+### Commands Redir
+
+Above, `{redir}` is optional and means that each command can use special syntax
+to redirect the *result* of the fennel evaluation to various places.
+
+| `{redir}` | Description |
+| --- | --- |
+| `> {file}` | write *result* to file `{file}` |
+| `@a`, `@a>` | save *result* to register `@a` |
+| `@A`, `@a>>` | append *result* to register `@a` |
+| `@+`, `@*`, `@"` | save *result* to PRIMARY, SELECT, or `@"` (resp.) |
+| `@+>`, `@*>`, `@">` | (same as above) |
+| `@+>>`, `@*>>`, `@">>` | same as above but append to register |
+| `=> {var}` | save *result* to vim variable `g:{var}` |
+| `=>> {var}` | append *result* to vim variable `g:{var}` |
+| `-> {var}` | save *result* to lua variable `_G.{var}` |
+| `->> {var}` | append *result* to lua variable `_G.{var}` |
+| `@_` | store *result* in black hole register (print nothing, do nothing) |
+| `==` | `:put` *result* on new line |
+
+### Fennel Swiss
+
+`:FnlSwiss` is all three other commands merged into one Swiss army knife. It
+supports `[range]` like `:FnlLines` and `[{expr} ...]` like `:Fnl`, but to
+support files, as well, it uses a special `{redir}`-like syntax, which can be
+before, after, or both before and after `{redir}` (if provided).
+
+If any are specified, FnlSwiss evaluates the `[range]` first, then all
+`{file}`s, and finally any `{expr}`s.
+
+### Example Commands
+
+```vim
+" say hi; store "bar" into vim.g.foo
+:Fnl => foo (print "hello from fennel") "bar"
+" evaluate paragraph with fennel and put on next line commented
+:'{,'}FnlLines ==
+" evaluate ~/fennel-test.fnl into @+ register
+:FnlFiles @+ ~/fennel-test.fnl 
+" eval from line to end of buffer and file ~/utils.fnl; store 9 into _G.Res
+:.,$FnlSwiss -> Res < ~/utils.fnl (sum 2 3 4)
+
+**Note:** :Fnl\* commands gobble `bar` like commands listed in `:help :bar`
+```
 
 Configuration
 -------------
@@ -69,7 +95,7 @@ INIT:
 - `{config}/after/plugin/**/*.fnl`
 - `{config}/lsp/*.fnl`
 
-before filetype plugins:
+Before filetype plugins:
 - `b:undo_ftplugin_fnl` `(string|function)` fennel string (or function)
 - `b:undo_ftplugin_lua` `(string|function)` lua string (or function)
 
@@ -81,7 +107,7 @@ filetype plugins:
 
 Thanks
 ------
-A special thanks to the fennel contributers and hotpot.nvim for the hard work
+A special thanks to the fennel contributors and hotpot.nvim for the hard work
 necessary to make this project viable and inspiration. Thanks also to fennel-ls
 and fennel-ls-nvim-docs.
 
@@ -112,3 +138,19 @@ fennel ecosystem a little brighter.
        |                                                        -*-
                                                                  |
 ```
+
+Todo
+----
+- [ ] options: `cache-on-write-fnl`, `cache-on-load-fnl` (defaulting to true)
+- [ ] `cache-on-write`: cache fnl -> lua when write fnl in config dir.
+- [ ] `cache-on-load`: package.loader that knows how to cache fnl -> lua
+  - can be own loader before fnl loader OR conditional inside fnl loader
+  - basically have to rewrite `:help vim.loader`
+    - that's fine, we want to cache anyway ig; draw wisdom from neovim!
+- [ ] repl using buftype=prompt
+- [ ] sanity macros to fix vim + vimL <- neovim + lua <- fennel pipeline nightmare
+- [ ] a separate package manager integrating with pack + elin
+- [ ] :checkhealth
+- [ ] edge cases for :Fnl commands
+- [ ] better instead of `:Fnl` with `[!]`, parse own directives and `[!]` can
+      be like `:redir` `[!]`.

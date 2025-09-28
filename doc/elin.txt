@@ -8,6 +8,7 @@
                           8I ,8I I8P   d8 I8  8I   8i
                         _,Igd8P,,d8b,_,88,dP  8I   "8,
                        888P""Y888P'"Y8P""8P'  8I    "8i
+<                             for Neovim +v0.8.0
 ==============================================================================
 About                                                           *elin-about*
 
@@ -16,7 +17,7 @@ files where you would normally write `.lua` or `.vim` files For more info,
 see |elin-config|.
 
 Fennel is a lisp that compiles directly to lua or evaluates fennel using a lua
-interpretter. Elin uses neovim's |lua-luajit| to bootstrap fennel on top and
+interpreter. Elin uses neovim's |lua-luajit| to bootstrap fennel on top and
 tries to make it as comfortable to use `.fnl` files as it is to use `.lua`
 files everywhere.
 
@@ -24,14 +25,6 @@ There are also some nice commands for evaluating fennel in various ways. Check
 out |fennel-commands|.
 
 See |elin-api.txt| for elin's api used in |compile-nvim|.
-
-Better features coming soon!
-- support "." in 'filetype' during ftplugin
-- cache on write (also check timestamps at <insert time> (init? ftplugin?)?)
-- find+remember cached elin-rtp files and don't duplicate during INIT/ftplugin
-- sanity macros to fix vim + vimL <- neovim + lua <- fennel pipeline nightmare
-- a separate package manager integrating with |pack| + |elin| w lazy loading
-- etc!
 
 ==============================================================================
 Compile Neovim                                  *use-elin-rtp*  *compile-nvim*
@@ -56,28 +49,6 @@ files to elin-rtp (via |elin.compile-all|) and add elin's rtp cache to nvim's
 
 Elin's rtp cache is located at the following directory:     *elin-rtp* >fennel
   (.. (vim.stdpath :cache) :/elin-rtp/)
-
-==============================================================================
-Fennel Commands                                              *fennel-commands*
-
-:Fnl [x] {expr}           Evaluate {expr} [into register x].            *:Fnl*
-:FnlDofile {file}         Evaluate {file}.                        *:FnlDofile*
-:FnlDofileReg [x] {file}  Evaluate {file} [into register x].   *:FnlDofileReg*
-:[range]FnlDolines [x]    Evaluate [range] [into register x].    *:FnlDolines*
-
-Examples: >vim
-  :Fnl (print "hello from fennel")
-  " evaluate (+ 2 3) to @a register and :put @a register
-  :Fnl a(+ 2 3)
-  :put a
-   " evaluate current paragraph into PRIMARY clipboard
-  :'{,'}FnlDolines +
-
-Note: These commands (except |:FnlDolines|) gobble |bar| like those listed in
-      |:bar|.
-
-Note: `:FnlDofileReg foo.fnl` actually evaluates the file `oo.fnl` into
-      register `f`, hence the separate command. Use carefully.
 ==============================================================================
 Elin Configuration                                               *elin-config*
 
@@ -146,6 +117,7 @@ b:undo_ftplugin_lua                                        *undo_ftplugin_lua*
   (lua). b:undo_ftplugin_lua is the same but for lua expressions and
   functions. See just below for example usage.
 
+
 {config}/ftplugin/*.fnl                                         *ftplugin.fnl*
 {config}/after/ftplugin/*.fnl                             *after-ftplugin.fnl*
 
@@ -178,9 +150,140 @@ b:undo_ftplugin_lua                                        *undo_ftplugin_lua*
     ;; Note: this disables syntax for .lua, .vim, and .fnl files
 
 ==============================================================================
+Fennel Commands                                              *fennel-commands*
+
+Note: :Fnl* commands gobble |bar| like commands listed in |:bar|.
+
+
+:Fnl[!] [{redir}] {expr}                                                *:Fnl*
+                        Evaluate {expr} as a fennel expression using the
+                        fennel interpreter.
+
+                        [!] alters how the `result` is printed.
+                        Without [!] the result is printed with with `=>`
+                        prefix like "=> result". With it, no arrows are
+                        printed.
+
+                        Note: This is still a work in progress as each {redir}
+                        should have its own default and [!] can alter how it
+                        is displayed. It applies to all commands below. We
+                        actually probably want to parse our own indicators.
+                        Eg, sometimes we should use fennel.view(). Sometimes,
+                        we should prepend a comment (referencing &filetype).
+                        Etc.
+
+                        If {redir} is not specified, the `result` is printed
+                        to the cmdline. Otherwise, {redir} specifies if the
+                        `result` should into a register, a file, a vim or lua
+                        variable, or the current buffer. See |:redir|, which
+                        shares most of the syntax and ability. See
+                        |:Fnl-redir|.
+
+
+:FnlFiles[!] [{redir}] {file} [{file} ...]                         *:FnlFiles*
+                        Evaluate all {file}s as one fennel expression using
+                        the fennel interpreter.
+
+                        [!] alters how the `result` is printed.
+                        Without [!] the result is printed with with `=>`
+                        prefix like "=> result". With it, no arrows are
+                        printed.
+
+                        {redir} applies as with |:Fnl| if specified.
+
+
+:{range}FnlLines[!] [{redir}]                                      *:FnlLines*
+                        Evaluate {range} (default current line) as a fennel
+                        chunk.
+
+                        [!] alters how the `result` is printed.
+                        Without [!] the result is printed with with `=>`
+                        prefix like "=> result". With it, no arrows are
+                        printed.
+
+                        {redir} applies as with |:Fnl| if specified.
+
+:[{range}]FnlSwiss[!] [{files}] [{redir}] [{files}] [{expr}]       *:FnlSwiss*
+                        This is all of the above commands merged into one
+                        tool: a multi-tool. Just like a Swiss army knife, it
+                        seems cool; but probably no one will ever need or want
+                        to use it.
+
+                        [!] alters how the `result` is printed.
+                        Without [!] the result is printed with with `=>`
+                        prefix like "=> result". With it, no arrows are
+                        printed.
+
+                        {range} can be provided like with |:FnlLines|.
+
+                        {files} can be provided like with |:FnlFiles|.
+                        However, each file must be `<` (and optional space)
+                        and can only come just before and/or after {redir}.
+
+                        {expr} can be provided like with |:Fnl|.
+
+                        If any are specified, FnlSwiss evaluates the {range}
+                        first, then all {files} in order, and finally any
+                        {expr}s.
+
+                        {redir} applies as with |:Fnl| if specified.
+
+
+                                                                  *:Fnl-redir*
+{redir} applies to |:Fnl|, |:FnlFile|, |:FnlLines|, and |:FnlSwiss|. It must
+be specified before the {expr}. Here is a list of all redirs:
+
+  :Fnl > {file} {expr}     (Always) Write result to {file}.
+                          Note: [!] doesn't work like |:redir|
+  :Fnl >> {file} {expr}    Append result to {file}
+
+  :Fnl @{a-zA-Z}> {expr}   Save result to register {a-z}; append if {A-Z}
+  :Fnl @{a-zA-Z} {expr}    Same as above (compat)
+  :Fnl @{a-z}>> {expr}     Append result to register {a-z}
+
+  :Fnl @{*+"}> {expr}      Save result to `*`, `+`, or `"` register
+  :Fnl @{*+"} {expr}       Same as above (compat)
+  :Fnl @{*+"}>> {expr}     Append result `*`, `+`, or `"` register
+                          See |quotestar|, |quote+|, and |quotequote|
+
+  :Fnl => {var} {expr}     Save result to g:{var} (vim global variable)
+  :Fnl =>> {var} {expr}    Append result to g:{var}
+
+  The rest are not specified by |:redir| but are supported by |:Fnl|:
+
+  :Fnl -> {var} {expr}     Save result to _G.{var} (lua global variable)
+  :Fnl ->> {var} {expr}    Append result to _G.{var}
+
+  :Fnl @_ {expr}           Disregard result (use "black hole" register)
+  :Fnl == {expr}           |:put| result
+
+Synopsis:
+    {redir}  Description ~
+   > {file}  write `result` to file {file}
+  >> {file}  append `result` to file {file}
+        @+>  save `result` to register `@+` (same as @+>)
+       @a>>  append `result` to register `@a` (same as @A)
+   => {var}  save `result` to vim variable `g:`{var}
+  =>> {var}  append `result` to vim variable `g:`{var}
+   -> {var}  save `result` to lua variable `_G.`{var}
+  ->> {var}  append `result` to lua variable `_G.`{var}
+         @_  don't print or store `result` (black hole
+         ==  |:put| result on new line
+
+Examples: >vim
+  " say hi; store "bar" into vim.g.foo
+  :Fnl => foo (print "hello from fennel") "bar"
+  " evaluate paragraph with fennel and put on next line commented
+  :'{,'}FnlLines ==
+  " evaluate ~/fennel-test.fnl into @+ register
+  :FnlFiles @+> ~/fennel-test.fnl
+  " eval from line to end of buffer and file ~/utils.fnl; store 9 into _G.Res
+  :.,$FnlSwiss -> Res < ~/utils.fnl (sum 2 3 4)
+
+==============================================================================
 <3                                                             *elin-thanks*
 
-A special thanks to the fennel contributers and hotpot.nvim for the hard work
+A special thanks to the fennel contributors and hotpot.nvim for the hard work
 necessary to make this project viable and inspiration. Thanks also to
 fennel-ls and fennel-ls-nvim-docs.
 
@@ -209,7 +312,16 @@ dark world of ~emacs~. ;)
 
 Pronounce the plugin name however you want! I pronounce it /ee-lin/ (like
 elisp), but the name is probably pronounced /eh-lin/ :)
-
-==============================================================================
-
- vim:tw=78:ts=2:et:ft=help:norl:
+>
+                                |
+                         |     -*-
+                        -*-     |
+                         |                            |
+  |                                                  -*-
+ -*-                                                  |
+  |                                           |
+       |                                     -*-
+      -*-                                     |                  |
+       |                                                        -*-
+                                                                 |
+< vim:tw=78:ts=2:et:ft=help:norl:

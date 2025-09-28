@@ -6,7 +6,13 @@
 (local config (vim.fn.stdpath :config))
 
 (set fennel.path (.. config "/fnl/?.fnl;" config "/fnl/?/init.fnl"))
-(fennel.install)
+; ; ; ;; ↓ dev only ↓ warning: remove lua/**/*.lua files
+; ; ; (set fennel.path
+; ; ;      (.. fennel.path ";"
+; ; ;          config "/pack/local/start/elin/fnl/?.fnl;"
+; ; ;          config :/pack/local/start/elin/fnl/?/init.fnl))
+; ; ; ;; ↑ dev only ↑
+(fennel.install) ; we need our own package.loader anyway
 
 (fn no-rtp-file [glob]
   "true if {glob} is not in &runtimepath; else false"
@@ -32,8 +38,6 @@
 ;; plugin INIT (disable with --noplugins)
 (when vim.o.loadplugins
   (each [_ path (ipairs (all-rtp-files :plugin/**/*.fnl))]
-    (try #(fennel.dofile path)))
-  (each [_ path (ipairs (all-rtp-files :after/plugin/**/*.fnl))]
     (try #(fennel.dofile path))))
 
 ;; lsp INIT
@@ -52,38 +56,24 @@
           (= (type undo-fnl) :function) (try #(undo-fnl))
           (= (type undo-lua) :string) (try #(vim.fn.luaeval undo-lua nil))
           (= (type undo-lua) :function) (try #(undo-lua)))
-      (tset vim.b ev.buf (:undo_ typ :_fnl) nil)
-      (tset vim.b ev.buf (:undo_ typ :_lua) nil))))
+      (tset vim.b ev.buf (.. :undo_ typ :_fnl) nil)
+      (tset vim.b ev.buf (.. :undo_ typ :_lua) nil))))
 
-;; todo: for ftplugin/indent/syntax, split &ft on '.'
-;; todo: this gets loaded multiple times. find how to prevent (time + state)
-;; ftplugin or indent filetype plugin
 (fn do-ft-plugin [ev typ]
-  "load {,after}/{ftplugin,indent}/*.fnl when b:did_{ftplugin,indent} = 0"
-  (let [glob (-> (.. typ :/ ev.match :.fnl)
-                 (vim.api.nvim_get_runtime_file false)
-                 (. 1))
-        aglob (-> (.. :after/ typ :/ ev.match :.fnl)
-                  (vim.api.nvim_get_runtime_file false)
-                  (. 1))]
-    (case glob
-      path (try #(fennel.dofile path)))
-    (case aglob
-      path (try #(fennel.dofile path)))))
+  "load {ftplugin,indent}/*.fnl"
+  (each [ft (string.gmatch ev.match "[^.]+")]
+    (let [paths (-> (string.format "%s/%s.fnl %s/%s_*.fnl" typ ft typ ft)
+                    (vim.api.nvim_get_runtime_file true))]
+      (each [_ path (ipairs paths)]
+        (try #(fennel.dofile path))))))
 
-;; syntax "filetype plugin"
 (fn do-syntax [ev]
-  "load {,after}/syntax/*.fnl"
-  (let [syng (-> (.. :syntax/ ev.match :.fnl)
-                 (vim.api.nvim_get_runtime_file false)
-                 (. 1))
-        asyng (-> (.. :after/syntax ev.match :.fnl)
-                  (vim.api.nvim_get_runtime_file false)
-                  (. 1))]
-    (case syng
-      path (try #(fennel.dofile path)))
-    (case asyng
-      path (try #(fennel.dofile path)))))
+  "load syntax/*.fnl"
+  (each [ft (string.gmatch ev.match "[^.]+")]
+    (let [paths (-> (string.format "syntax/%s.fnl" ft)
+                    (vim.api.nvim_get_runtime_file true))]
+      (each [_ path (ipairs paths)]
+      path (try #(fennel.dofile path))))))
 
 (fn do-filetype-plugins [ev]
   "filtype plugins: [undo_ftplugin_fnl,] ftplugin, indent, syntax"
@@ -101,32 +91,43 @@
       (do-syntax ev))))
 
 (let [cmd vim.api.nvim_create_user_command]
-  ; todo: :Fnl*Put ? or :Fnl => reg good enough?
-  (cmd :Fnl #(let [{: fnl} (require :elin.commands)]
-               (fnl $1.args $1.reg))
-       {:nargs 1
-        :bar true
-        ; todo: custom fennel completion (fennel-ls??)
-        :register true
-        :desc "fennel.eval {expression} to cmdline or register"})
-  (cmd :FnlDofile #(let [{: dofile} (require :elin.commands)]
-                     (dofile $1.args ""))
-       {:nargs 1
+  (cmd :Fnl
+       (fn [ev]
+         (let [{: do-eval} (require :elin.commands)]
+           (do-eval ev.bang ev.args)
+           nil))
+       {:nargs "+"
+        :bang true
+        ;; todo: custom completion (lsp?)
+        :desc "fennel.eval {expression} to wherever"})
+  (cmd :FnlFiles
+       (fn [ev]
+         (let [{: do-files} (require :elin.commands)]
+           (do-files ev.bang ev.fargs)
+           nil))
+       {:nargs "+"
+        :bang true
         :complete :file
-        :desc ":fennel.dofile {file} to cmdline or register"})
-  (cmd :FnlDofileReg #(let [{: dofile} (require :elin.commands)]
-                        (dofile $1.args $1.reg))
-       {:nargs 1
-        :complete :file
-        :register true
-        :desc ":fennel.dofile {file} to cmdline or register"})
-  (cmd :FnlDolines #(let [{: dolines} (require :elin.commands)]
-                      (dolines $1.line1 $1.line2 0 $1.reg))
-       {:nargs 0
-        :bar true
+        :desc "fennel.eval files"})
+  (cmd :FnlLines
+       (fn [ev]
+         (let [{: do-lines} (require :elin.commands)]
+           (do-lines ev.bang ev.line1 ev.line2 0 ev.args)
+           nil))
+       {:nargs "*"
+        :bang true
+        :range "%"
+        :desc "fennel.eval range"})
+  (cmd :FnlSwiss
+        (fn [ev]
+          (let [{: do-swiss} (require :elin.commands)]
+            (do-swiss ev.bang ev.count ev.line1 ev.line2 0 ev.args)
+            nil))
+       {:nargs "*"
+        :bang true
         :range true
-        :register true
-        :desc "fennel.eval [range] to cmdline or register"}))
+        ; todo: custom fennel completion
+        :desc "fennel.eval(<files [range] {expression}) to wherever"}))
 
 (let [aug (vim.api.nvim_create_augroup :elin {})
       au vim.api.nvim_create_autocmd]
@@ -135,7 +136,9 @@
                  :desc "load fennel files"})
   (au :SourceCmd {:group aug
                   :pattern :*.fnl
-                  :callback #(fennel.dofile (vim.fs.normalize $1.file nil))
+                  :callback (fn [ev]
+                              (fennel.dofile (vim.fs.normalize ev.file nil))
+                              nil)
                   :desc ":source fennel files"}))
 
 nil

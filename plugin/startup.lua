@@ -40,16 +40,10 @@ if vim.o.loadplugins then
     end
     try(_7_)
   end
-  for _, path in ipairs(all_rtp_files("after/plugin/**/*.fnl")) do
-    local function _8_()
-      return fennel.dofile(path)
-    end
-    try(_8_)
-  end
 else
 end
 for _, path in ipairs(all_rtp_files("lsp/*.fnl")) do
-  local function _10_()
+  local function _9_()
     local file = io.open(path)
     local function close_handlers_12_(ok_13_, ...)
       file:close()
@@ -59,113 +53,95 @@ for _, path in ipairs(all_rtp_files("lsp/*.fnl")) do
         return error(..., 0)
       end
     end
-    local function _12_()
+    local function _11_()
       local config0 = fennel.eval(file:read("*a"))
       local name = path:gsub(".*/", ""):gsub("%.fnl$", "")
       return vim.lsp.config(name, config0)
     end
-    local _14_
+    local _13_
     do
-      local t_13_ = _G
-      if (nil ~= t_13_) then
-        t_13_ = t_13_.package
+      local t_12_ = _G
+      if (nil ~= t_12_) then
+        t_12_ = t_12_.package
       else
       end
-      if (nil ~= t_13_) then
-        t_13_ = t_13_.loaded
+      if (nil ~= t_12_) then
+        t_12_ = t_12_.loaded
       else
       end
-      if (nil ~= t_13_) then
-        t_13_ = t_13_.fennel
+      if (nil ~= t_12_) then
+        t_12_ = t_12_.fennel
       else
       end
-      _14_ = t_13_
+      _13_ = t_12_
     end
-    local or_18_ = _14_ or _G.debug
-    if not or_18_ then
-      local function _19_()
+    local or_17_ = _13_ or _G.debug
+    if not or_17_ then
+      local function _18_()
         return ""
       end
-      or_18_ = {traceback = _19_}
+      or_17_ = {traceback = _18_}
     end
-    return close_handlers_12_(_G.xpcall(_12_, or_18_.traceback))
+    return close_handlers_12_(_G.xpcall(_11_, or_17_.traceback))
   end
-  try(_10_)
+  try(_9_)
 end
 local function undo_ft_plugin(ev, typ)
   local undo_fnl = vim.b[ev.buf][("undo_" .. typ .. "_fnl")]
   local undo_lua = vim.b[ev.buf][("undo_" .. typ .. "_lua")]
   if (undo_fnl or undo_lua) then
     if (type(undo_fnl) == "string") then
-      local function _20_()
+      local function _19_()
         return fennel.eval(undo_fnl)
       end
-      try(_20_)
+      try(_19_)
     elseif (type(undo_fnl) == "function") then
-      local function _21_()
+      local function _20_()
         return undo_fnl()
       end
-      try(_21_)
+      try(_20_)
     elseif (type(undo_lua) == "string") then
-      local function _22_()
+      local function _21_()
         return vim.fn.luaeval(undo_lua, nil)
       end
-      try(_22_)
+      try(_21_)
     elseif (type(undo_lua) == "function") then
-      local function _23_()
+      local function _22_()
         return undo_lua()
       end
-      try(_23_)
+      try(_22_)
     else
     end
-    vim.b[ev.buf][("undo_")(typ, "_fnl")] = nil
-    vim.b[ev.buf][("undo_")(typ, "_lua")] = nil
+    vim.b[ev.buf][("undo_" .. typ .. "_fnl")] = nil
+    vim.b[ev.buf][("undo_" .. typ .. "_lua")] = nil
     return nil
   else
     return nil
   end
 end
 local function do_ft_plugin(ev, typ)
-  local glob = vim.api.nvim_get_runtime_file((typ .. "/" .. ev.match .. ".fnl"), false)[1]
-  local aglob = vim.api.nvim_get_runtime_file(("after/" .. typ .. "/" .. ev.match .. ".fnl"), false)[1]
-  if (nil ~= glob) then
-    local path = glob
-    local function _26_()
-      return fennel.dofile(path)
+  for ft in string.gmatch(ev.match, "[^.]+") do
+    local paths = vim.api.nvim_get_runtime_file(string.format("%s/%s.fnl %s/%s_*.fnl", typ, ft, typ, ft), true)
+    for _, path in ipairs(paths) do
+      local function _25_()
+        return fennel.dofile(path)
+      end
+      try(_25_)
     end
-    try(_26_)
-  else
   end
-  if (nil ~= aglob) then
-    local path = aglob
-    local function _28_()
-      return fennel.dofile(path)
-    end
-    return try(_28_)
-  else
-    return nil
-  end
+  return nil
 end
 local function do_syntax(ev)
-  local syng = vim.api.nvim_get_runtime_file(("syntax/" .. ev.match .. ".fnl"), false)[1]
-  local asyng = vim.api.nvim_get_runtime_file(("after/syntax" .. ev.match .. ".fnl"), false)[1]
-  if (nil ~= syng) then
-    local path = syng
-    local function _30_()
-      return fennel.dofile(path)
+  for ft in string.gmatch(ev.match, "[^.]+") do
+    local paths = vim.api.nvim_get_runtime_file(string.format("syntax/%s.fnl", ft), true)
+    for _, path in ipairs(paths) do
+      local function _26_()
+        return fennel.dofile(path)
+      end
+      try(_26_)
     end
-    try(_30_)
-  else
   end
-  if (nil ~= asyng) then
-    local path = asyng
-    local function _32_()
-      return fennel.dofile(path)
-    end
-    return try(_32_)
-  else
-    return nil
-  end
+  return nil
 end
 local function do_filetype_plugins(ev)
   local ftp_on
@@ -201,41 +177,46 @@ local function do_filetype_plugins(ev)
 end
 do
   local cmd = vim.api.nvim_create_user_command
-  local function _37_(_241)
-    local _let_38_ = require("elin.commands")
-    local fnl = _let_38_["fnl"]
-    return fnl(_241.args, _241.reg)
+  local function _30_(ev)
+    local _let_31_ = require("elin.commands")
+    local do_eval = _let_31_["do-eval"]
+    do_eval(ev.bang, ev.args)
+    return nil
   end
-  cmd("Fnl", _37_, {nargs = 1, bar = true, register = true, desc = "fennel.eval {expression} to cmdline or register"})
-  local function _39_(_241)
-    local _let_40_ = require("elin.commands")
-    local dofile = _let_40_["dofile"]
-    return dofile(_241.args, "")
+  cmd("Fnl", _30_, {nargs = "+", bang = true, desc = "fennel.eval {expression} to wherever"})
+  local function _32_(ev)
+    local _let_33_ = require("elin.commands")
+    local do_files = _let_33_["do-files"]
+    do_files(ev.bang, ev.fargs)
+    return nil
   end
-  cmd("FnlDofile", _39_, {nargs = 1, complete = "file", desc = ":fennel.dofile {file} to cmdline or register"})
-  local function _41_(_241)
-    local _let_42_ = require("elin.commands")
-    local dofile = _let_42_["dofile"]
-    return dofile(_241.args, _241.reg)
+  cmd("FnlFiles", _32_, {nargs = "+", bang = true, complete = "file", desc = "fennel.eval files"})
+  local function _34_(ev)
+    local _let_35_ = require("elin.commands")
+    local do_lines = _let_35_["do-lines"]
+    do_lines(ev.bang, ev.line1, ev.line2, 0, ev.args)
+    return nil
   end
-  cmd("FnlDofileReg", _41_, {nargs = 1, complete = "file", register = true, desc = ":fennel.dofile {file} to cmdline or register"})
-  local function _43_(_241)
-    local _let_44_ = require("elin.commands")
-    local dolines = _let_44_["dolines"]
-    return dolines(_241.line1, _241.line2, 0, _241.reg)
+  cmd("FnlLines", _34_, {nargs = "*", bang = true, range = "%", desc = "fennel.eval range"})
+  local function _36_(ev)
+    local _let_37_ = require("elin.commands")
+    local do_swiss = _let_37_["do-swiss"]
+    do_swiss(ev.bang, ev.count, ev.line1, ev.line2, 0, ev.args)
+    return nil
   end
-  cmd("FnlDolines", _43_, {nargs = 0, bar = true, range = true, register = true, desc = "fennel.eval [range] to cmdline or register"})
+  cmd("FnlSwiss", _36_, {nargs = "*", bang = true, range = true, desc = "fennel.eval(<files [range] {expression}) to wherever"})
 end
 do
   local aug = vim.api.nvim_create_augroup("elin", {})
   local au = vim.api.nvim_create_autocmd
-  local function _45_(...)
+  local function _38_(...)
     return do_filetype_plugins(...)
   end
-  au("FileType", {group = aug, callback = _45_, desc = "load fennel files"})
-  local function _46_(_241)
-    return fennel.dofile(vim.fs.normalize(_241.file, nil))
+  au("FileType", {group = aug, callback = _38_, desc = "load fennel files"})
+  local function _39_(ev)
+    fennel.dofile(vim.fs.normalize(ev.file, nil))
+    return nil
   end
-  au("SourceCmd", {group = aug, pattern = "*.fnl", callback = _46_, desc = ":source fennel files"})
+  au("SourceCmd", {group = aug, pattern = "*.fnl", callback = _39_, desc = ":source fennel files"})
 end
 return nil

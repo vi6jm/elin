@@ -1,7 +1,8 @@
 :Fnl	elin.txt	/*:Fnl*
-:FnlDofile	elin.txt	/*:FnlDofile*
-:FnlDofileReg	elin.txt	/*:FnlDofileReg*
-:FnlDolines	elin.txt	/*:FnlDolines*
+:Fnl-redir	elin.txt	/*:Fnl-redir*
+:FnlFiles	elin.txt	/*:FnlFiles*
+:FnlLines	elin.txt	/*:FnlLines*
+:FnlSwiss	elin.txt	/*:FnlSwiss*
 after-ftplugin.fnl	elin.txt	/*after-ftplugin.fnl*
 after-plugin.fnl	elin.txt	/*after-plugin.fnl*
 after/syntax.fnl	elin.txt	/*after\/syntax.fnl*
