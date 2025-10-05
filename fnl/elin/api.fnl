@@ -1,18 +1,18 @@
 (local fennel (require :fennel))
-(local uv (or vim.loop vim.uv))
+(local uv (or _G.vim.loop _G.vim.uv))
 (local elin (require :elin))
 
-(local _config (.. (vim.fn.stdpath :config) :/))
+(local _config (.. (_G.vim.fn.stdpath :config) :/))
 (local _config-len (length _config))
 (local _o755 493)
 (local _fnl-files "{fnl,plugin,ftplugin,syntax,colors,compile,lsp}/**/*.fnl")
 
 (fn _make-all-dirs [file mode]
   (local dirs {})
-  (var dir (vim.fs.dirname file))
+  (var dir (_G.vim.fs.dirname file))
   (while (= (uv.fs_stat dir) nil)
-    (table.insert dirs 1 dir)
-    (set dir (vim.fs.dirname dir)))
+    (_G.table.insert dirs 1 dir)
+    (set dir (_G.vim.fs.dirname dir)))
   (each [_ dir (ipairs dirs)]
     (uv.fs_mkdir dir mode)))
 
@@ -23,17 +23,17 @@
 
 (fn _compile-nvim [fnl-fname opts]
   (if (= (fnl-fname:sub 1 _config-len) _config)
-    (with-open [fnl-fh (io.open fnl-fname)]
+    (with-open [fnl-fh (_G.io.open fnl-fname)]
       (local lua-fname (_fnl-to-lua-fname fnl-fname))
       (set opts.filename fnl-fname)
       (_make-all-dirs lua-fname _o755)
       (case (xpcall #(fennel.compile fnl-fh opts) #$)
-        (true lua-out) (with-open [lua-fh (io.open lua-fname :w)]
+        (true lua-out) (with-open [lua-fh (_G.io.open lua-fname :w)]
                          (lua-fh:write lua-out)
                          (lua-fh:write "\n")
                          [true nil fnl-fname lua-fname])
         (_    err    ) (do (when elin.verbose
-                             (let [qname (string.format :%q fnl-fname)]
+                             (let [qname (_G.string.format :%q fnl-fname)]
                                (print (.. "error compiling " qname ": " err))))
                          [false err fnl-fname nil])))
     (do
@@ -49,7 +49,7 @@
 
 
 (fn compile-nvim-config [opts]
-  (icollect [_ fnl-fname (ipairs (vim.api.nvim_get_runtime_file _fnl-files true))]
+  (icollect [_ fnl-fname (ipairs (_G.vim.api.nvim_get_runtime_file _fnl-files true))]
     (_compile-nvim fnl-fname (_gather-opts opts))))
 
 (fn compile-nvim-file [fnl-fname opts]

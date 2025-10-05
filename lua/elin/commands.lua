@@ -124,12 +124,12 @@ local function handle_matches(bang_3f, matches, result)
     _G[name] = (_17_ .. result)
   elseif ((_G.type(matches) == "table") and (matches[1] == "==")) then
     local line
-    if ((vim.api.nvim_buf_line_count(0) == 1) and (vim.api.nvim_buf_get_lines(0, 0, 1, true)[1] == "")) then
+    if ((_G.vim.api.nvim_buf_line_count(0) == 1) and (_G.vim.api.nvim_buf_get_lines(0, 0, 1, true)[1] == "")) then
       line = 0
     else
       line = (_G.vim.api.nvim_win_get_cursor(0)[1] + 1)
     end
-    local line0 = math.min(line, vim.api.nvim_buf_line_count(0))
+    local line0 = _G.math.min(line, _G.vim.api.nvim_buf_line_count(0))
     local result0
     if bang_3f then
       result0 = ("; " .. result:gsub("\n", "\n; "))
@@ -160,7 +160,7 @@ local function handle(bang_3f, matches, expr)
     local function _26_(_241)
       return _241
     end
-    return vim.api.nvim_err_writeln(_26_(err:gsub("\n.*", ("\nconcatenated input:\n  " .. expr:gsub("\n", "\n  ")))))
+    return _G.vim.api.nvim_err_writeln(_26_(err:gsub("\n.*", ("\nconcatenated input:\n  " .. expr:gsub("\n", "\n  ")))))
   else
     return nil
   end
@@ -177,7 +177,7 @@ local function do_files(bang_3f, files)
     for _, fname in ipairs(files) do
       local val_23_
       do
-        local fname0 = vim.fs.normalize(fname)
+        local fname0 = _G.vim.fs.normalize(fname)
         local file0 = io.open(fname0, "r")
         local function close_handlers_12_(ok_13_, ...)
           file0:close()
@@ -224,13 +224,13 @@ local function do_files(bang_3f, files)
     end
     _28_ = tbl_21_
   end
-  expr = table.concat(_28_, "\n")
+  expr = _G.table.concat(_28_, "\n")
   return handle(bang_3f, cmd_2a:match(expr))
 end
 local function do_lines(bang_3f, line1, line2, _3fbuf, cmd)
   local line10 = (line1 - 1)
   local buf = (_3fbuf or 0)
-  local lines = table.concat(vim.api.nvim_buf_get_lines(buf, line10, line2, true), "\n")
+  local lines = _G.table.concat(_G.vim.api.nvim_buf_get_lines(buf, line10, line2, true), "\n")
   local matches, _ = cmd_2a:match(cmd)
   return handle(bang_3f, matches, lines)
 end
@@ -256,7 +256,7 @@ local function do_swiss(bang_3f, count, l1, l2, _3fbuf, cmd)
     for _, fname in ipairs(files0) do
       local val_23_
       do
-        local fname0 = vim.fs.normalize(fname)
+        local fname0 = _G.vim.fs.normalize(fname)
         local file0 = io.open(fname0, "r")
         local function close_handlers_12_(ok_13_, ...)
           file0:close()
@@ -303,13 +303,13 @@ local function do_swiss(bang_3f, count, l1, l2, _3fbuf, cmd)
     end
     _39_ = tbl_21_
   end
-  cat = table.concat(_39_, "\n")
+  cat = _G.table.concat(_39_, "\n")
   local buf = (_3fbuf or 0)
   local lines
   if (count <= 0) then
     lines = ""
   else
-    lines = table.concat(vim.api.nvim_buf_get_lines(buf, (l1 - 1), l2, true), "\n")
+    lines = _G.table.concat(_G.vim.api.nvim_buf_get_lines(buf, (l1 - 1), l2, true), "\n")
   end
   local expr1 = (";; range\n" .. lines .. "\n" .. cat .. "\n\n;; stdin\n" .. expr0)
   return handle(bang_3f, matches, expr1)

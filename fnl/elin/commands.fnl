@@ -58,11 +58,11 @@
     ["=>" a? name] (let [result (.. (if a? (. _G.vim.g name) "") result)]
                           (tset _G.vim.g name result))
     ["->" a? name] (tset _G name (.. (if a? (. _G name) "") result))
-    ["=="] (let [line (if (and (= (vim.api.nvim_buf_line_count 0) 1)
-                               (= (. (vim.api.nvim_buf_get_lines 0 0 1 true) 1) ""))
+    ["=="] (let [line (if (and (= (_G.vim.api.nvim_buf_line_count 0) 1)
+                               (= (. (_G.vim.api.nvim_buf_get_lines 0 0 1 true) 1) ""))
                         0
                         (+ (. (_G.vim.api.nvim_win_get_cursor 0) 1) 1))
-                 line (math.min line (vim.api.nvim_buf_line_count 0))
+                 line (_G.math.min line (_G.vim.api.nvim_buf_line_count 0))
                  result (if bang? (.. "; " (result:gsub "\n" "\n; ")) result)]
              (_G.vim.api.nvim_buf_set_lines 0 line line true result))
     _ (print (view-result bang? result)))
@@ -73,7 +73,7 @@
   (local {: eval} (require :fennel))
   (case (pcall #(eval expr {:filename :stdin}))
     (true result) (handle-matches bang? matches result)
-    (_ err) (vim.api.nvim_err_writeln
+    (_ err) (_G.vim.api.nvim_err_writeln
               (#$1 (err:gsub "\n.*" (.. "\nconcatenated input:\n  "
                                         (expr:gsub "\n" "\n  ")))))))
 
@@ -84,18 +84,18 @@
 (fn do-files [bang? files]
   "Eval files as concatenated fennel expression; eg :FnlFiles foo.fnl bar.lua"
   (let [expr (-> (icollect [_ fname (ipairs files)]
-                   (let [fname (vim.fs.normalize fname)]
+                   (let [fname (_G.vim.fs.normalize fname)]
                     (with-open [file (io.open fname :r)]
                       (.. ";; " fname "\n" (file:read "*a")))))
-                 (table.concat "\n"))]
+                 (_G.table.concat "\n"))]
   (handle bang? (cmd*:match expr)))) ;; todo: eval each with file=file + result
 
 (fn do-lines [bang? line1 line2 ?buf cmd]
   "Eval selected range as fennel expression; eg :'{,'}FnlRange"
   (let [line1 (- line1 1)
         buf (or ?buf 0)
-        lines (-> (vim.api.nvim_buf_get_lines buf line1 line2 true)
-                  (table.concat "\n"))
+        lines (-> (_G.vim.api.nvim_buf_get_lines buf line1 line2 true)
+                  (_G.table.concat "\n"))
         (matches _) (cmd*:match cmd)]
     (handle bang? matches lines)))
 
@@ -107,14 +107,14 @@
         (files2 expr) (files*:match expr)
         files (icollect [_ file (ipairs files2) &into files] file)
         cat (-> (icollect [_ fname (ipairs files)]
-                  (let [fname (vim.fs.normalize fname)]
+                  (let [fname (_G.vim.fs.normalize fname)]
                     (with-open [file (io.open fname :r)]
                       (.. ";; " fname "\n" (file:read :*a)))))
-                (table.concat "\n"))
+                (_G.table.concat "\n"))
         buf (or ?buf 0)
         lines (if (<= count 0) ""
-                (-> (vim.api.nvim_buf_get_lines buf (- l1 1) l2 true)
-                    (table.concat "\n")))
+                (-> (_G.vim.api.nvim_buf_get_lines buf (- l1 1) l2 true)
+                    (_G.table.concat "\n")))
         expr (.. ";; range\n" lines "\n" cat "\n\n;; stdin\n" expr)]
   (handle bang? matches expr))) ;; todo: eval each with file=file if relevant + result
 

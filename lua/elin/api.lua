@@ -1,16 +1,16 @@
 local fennel = require("fennel")
-local uv = (vim.loop or vim.uv)
+local uv = (_G.vim.loop or _G.vim.uv)
 local elin = require("elin")
-local _config = (vim.fn.stdpath("config") .. "/")
+local _config = (_G.vim.fn.stdpath("config") .. "/")
 local _config_len = #_config
 local _o755 = 493
 local _fnl_files = "{fnl,plugin,ftplugin,syntax,colors,compile,lsp}/**/*.fnl"
 local function _make_all_dirs(file, mode)
   local dirs = {}
-  local dir = vim.fs.dirname(file)
+  local dir = _G.vim.fs.dirname(file)
   while (uv.fs_stat(dir) == nil) do
-    table.insert(dirs, 1, dir)
-    dir = vim.fs.dirname(dir)
+    _G.table.insert(dirs, 1, dir)
+    dir = _G.vim.fs.dirname(dir)
   end
   for _, dir0 in ipairs(dirs) do
     uv.fs_mkdir(dir0, mode)
@@ -22,7 +22,7 @@ local function _fnl_to_lua_fname(fnl_fname)
 end
 local function _compile_nvim(fnl_fname, opts)
   if (fnl_fname:sub(1, _config_len) == _config) then
-    local fnl_fh = io.open(fnl_fname)
+    local fnl_fh = _G.io.open(fnl_fname)
     local function close_handlers_12_(ok_13_, ...)
       fnl_fh:close()
       if ok_13_ then
@@ -45,7 +45,7 @@ local function _compile_nvim(fnl_fname, opts)
       _3_, _4_ = xpcall(_5_, _6_)
       if ((_3_ == true) and (nil ~= _4_)) then
         local lua_out = _4_
-        local lua_fh = io.open(lua_fname, "w")
+        local lua_fh = _G.io.open(lua_fname, "w")
         local function close_handlers_12_0(ok_13_, ...)
           lua_fh:close()
           if ok_13_ then
@@ -88,7 +88,7 @@ local function _compile_nvim(fnl_fname, opts)
         local _ = _3_
         local err = _4_
         if elin.verbose then
-          local qname = string.format("%q", fnl_fname)
+          local qname = _G.string.format("%q", fnl_fname)
           print(("error compiling " .. qname .. ": " .. err))
         else
         end
@@ -151,7 +151,7 @@ end
 local function compile_nvim_config(opts)
   local tbl_21_ = {}
   local i_22_ = 0
-  for _, fnl_fname in ipairs(vim.api.nvim_get_runtime_file(_fnl_files, true)) do
+  for _, fnl_fname in ipairs(_G.vim.api.nvim_get_runtime_file(_fnl_files, true)) do
     local val_23_ = _compile_nvim(fnl_fname, _gather_opts(opts))
     if (nil ~= val_23_) then
       i_22_ = (i_22_ + 1)
