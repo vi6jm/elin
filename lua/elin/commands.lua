@@ -78,7 +78,7 @@ do
   cmd_2a = ((Ct((_5cs_2a * to_all)) * _2a_2a) + (Ct("") * _2a_2a))
 end
 local function view_result(bang_3f, result)
-  local _let_12_ = require:fennel()
+  local _let_12_ = require("fennel")
   local view = _let_12_["view"]
   local result0 = view(result)
   if bang_3f then

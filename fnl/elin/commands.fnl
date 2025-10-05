@@ -47,7 +47,7 @@
     (+ (* (Ct (* \s* to-all)) **) (* (Ct "") **)))) ; ~ /({to-all}{**}|{**})/
 
 (fn view-result [bang? result]
-  (let [{: view} (require:fennel)
+  (let [{: view} (require :fennel)
         result (view result)]
     (if bang? result (.. "=> " (result:gsub "\n" "\n   ")))))
 
