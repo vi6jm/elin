@@ -1,18 +1,25 @@
-;; mandatory guard (prevents infinite recursive loading during plugin INIT)
+;; source guard; keep first
 (when _G._elin-did-startup (lua :return))
 (set _G._elin-did-startup true)
 
-(local fennel (require :fennel))
-(local config (_G.vim.fn.stdpath :config))
+;; todo?: respect $NVIM_APPNAME
 
-(set fennel.path (.. config "/fnl/?.fnl;" config "/fnl/?/init.fnl"))
-; ; ; ;; ↓ dev only ↓ warning: remove lua/**/*.lua files
-; ; ; (set fennel.path
-; ; ;      (.. fennel.path ";"
-; ; ;          config "/pack/local/start/elin/fnl/?.fnl;"
-; ; ;          config :/pack/local/start/elin/fnl/?/init.fnl))
-; ; ; ;; ↑ dev only ↑
-(fennel.install {:correlate true}) ; we need our own package.loader anyway
+;; todo: duplicate for elin.init() when available
+(set _G.package.preload.fennel
+     (fn [] ;; keep before requires
+       "preload fennel.luac (5x perf increase)"
+       (let [{: fs_open : fs_fstat : fs_read : fs_close} _G.vim.uv]
+         (case (. (_G.vim.api.nvim_get_runtime_file :lua/fennel.luac false) 1)
+           path (let [fh (fs_open path :r 438)
+                      size (. (assert (fs_fstat fh)) :size)
+                      data (fs_read fh size 0)]
+                  (fs_close fh)
+                  (case (_G.loadstring data)
+                    f (f)))))))
+
+
+(local elin (require :elin))
+(local fennel (require :fennel))
 
 (fn no-rtp-file [glob]
   "true if {glob} is not in &runtimepath; else false"
@@ -26,19 +33,16 @@
   "try to execute function; print fennel.traceback on error"
   (xpcall func (fn [err] (print fennel.traceback err) err)))
 
-;; todo: ? respect -u flag?
-
 ;; load init.fnl (if exists) when init.{lua,vim} not found
 (when (and (no-rtp-file :init.lua) (no-rtp-file :init.vim))
   (case (_G.vim.api.nvim_get_runtime_file :init.fnl false)
     [file] (do
              (_G.vim.uv.os_setenv :MYVIMRC file)
-             (try #(fennel.dofile file)))))
+             (try #(elin.dofile file)))))
 
-;; plugin INIT (disable with --noplugins)
-(when _G.vim.o.loadplugins
-  (each [_ path (ipairs (all-rtp-files :plugin/**/*.fnl))]
-    (try #(fennel.dofile path))))
+;; plugin INIT
+(each [_ path (ipairs (all-rtp-files :plugin/**/*.fnl))]
+  (try #(elin.dofile path)))
 
 ;; lsp INIT
 (each [_ path (ipairs (all-rtp-files :lsp/*.fnl))]
@@ -81,12 +85,12 @@
       au _G.vim.api.nvim_create_autocmd]
   (au :FileType {:group aug
                  :callback #(let [{: do-filetype-plugins} (require :elin.ftplugin)]
-                              (do-filetype-plugins))
+                              (do-filetype-plugins $1))
                  :desc "load fennel files"})
   (au :SourceCmd {:group aug
                   :pattern :*.fnl
                   :callback (fn [ev]
-                              (fennel.dofile (_G.vim.fs.normalize ev.file nil))
+                              (elin.dofile (_G.vim.fs.normalize ev.file nil))
                               nil)
                   :desc ":source fennel files"}))
 

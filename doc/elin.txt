@@ -1,4 +1,5 @@
-*elin.txt*            Extensible Lisp Integration for Neovim          *elin* >
+*elin.txt*            Extensible Lisp Integration for Neovim            *elin*
+>
                                  ,dPb,    |
                                  IP"Yb   -*-
                         |        I8 8P gg |
@@ -8,12 +9,13 @@
                           8I ,8I I8P   d8 I8  8I   8i
                         _,Igd8P,,d8b,_,88,dP  8I   "8,
                        888P""Y888P'"Y8P""8P'  8I    "8i
-<                             for Neovim +v0.8.0
+<
+                              for Neovim `+v0.8.0`
 ==============================================================================
 About                                                           *elin-about*
 
 Elin enhances neovim with seamless fennel configuration. Just write `.fnl`
-files where you would normally write `.lua` or `.vim` files For more info,
+files where you would normally write `.lua` or `.vim` files. For more info,
 see |elin-config|.
 
 Fennel is a lisp that compiles directly to lua or evaluates fennel using a lua
@@ -23,40 +25,128 @@ files everywhere.
 
 There are also some nice commands for evaluating fennel in various ways. Check
 out |fennel-commands|.
-
-See |elin-api.txt| for elin's api used in |compile-nvim|.
+                                                             *elin-fennel-toc*
+For your convenience, some reference help documents, with the good graces of
+the fennel maintainers, are ported and distributed with this plugin:
+- |fennel-tutorial.txt|
+- |fennel-reference.txt|
+- |fennel-api.txt|
+- |fennel-macros.txt|
+- |fennel-style.txt|
+- |fennel-rationale.txt|
+- |fennel-values.txt|
+- |fennel-lua-primer.txt|
 
 ==============================================================================
-Compile Neovim                                  *use-elin-rtp*  *compile-nvim*
+Elin Module                                                      *elin-module*
 
-  -------------------------------- WARNING: --------------------------------
-                                  DO NOT USE
-    This is not fully implemented. It will cause duplicate loading during
-     INIT and ftplugin because elin will load the fennel and neovim will
-     load the lua file. This functionality and the documentation serve as
-                                stubs for now.
-  -------------------------------- WARNING: --------------------------------
+Note: as demonstrated below, the elin module has both functions that are easy
+to use in lua as well as names that adhere to the |fennel-style-guide|.
 
-If you want to use compiled lua files in elin-rtp, use >fennel
+                                                  *elin.setup()* *(elin.setup)
+Elin intends to be a drop-in bootstrapper for fennel, but the defaults may not
+be what you want. In this case, you can require the elin module and use its
+`.setup()` to better suit your preferences: >fennel
   ;; init.fnl
-  (let [{: compile-nvim : use-elin-rtp}]
-    (compile-nvim)
-    (use-elin-rtp))
+  (vim.loader.enable) ;; call before (fennel.enable-caching)
+  (let [{: setup : enable-caching} (require :elin)]
+    (setup {:cache-dir :/tmp/elin-cache/})
+    (enable-caching))
+>lua
+  -- init.lua (alternative)
+  local elin = require("elin")
+  elin.setup { cacheDir = "/tmp/elin-cache/" }
+  vim.loader.enable()
+  elin.enableCaching()
 
-Respectively, these commands backup elin-rtp then one-shot compile all fennel
-files to elin-rtp (via |elin.compile-all|) and add elin's rtp cache to nvim's
-'rtp'.
+At the moment, there isn't much to tweak: only `cache-dir` (alternatively,
+`cacheDir`). This is easily remedied; don't hesitate to submit an issue if you
+want something to be more customizable.
 
-Elin's rtp cache is located at the following directory:     *elin-rtp* >fennel
-  (.. (vim.stdpath :cache) :/elin-rtp/)
+                                      *elin.getVersion()* *(elin.get-version)*
+Use these functions to get elin's version in the format
+`v{major}.{minor}.{patch}`. The current version is `v0.0.6`. >fennel
+  ;; init.fnl
+  (let [{: get-version} (require :elin)]
+    (print "Elin version:" (get-version)))
+  ;; => Elin version: v0.0.6
+>lua
+  -- init.lua (alternative)
+  local elin = require("elin")
+  print("Elin version:", elin.getVersion())
+  -- => Elin version: v0.0.6
+<
+                                                  *elin-caching* *elin-loader*
+Elin can inject a package loader that will automatically cache fennel modules
+when required, so that neovim initializes faster. It does this by storing
+luajit byte code in `stdpath("cache") .. "/elin/"`. This is considered
+experimental, so you have enable the loader manually.
+
+You can also pair this with neovim's experimental loader, |vim.loader|. I'm
+seeing 70ms speedup using both.
+
+                           *elin.isCachingEnabled()* *(elin.caching-enabled?)*
+                           *elin.enableCaching()*    *(elin.enable-caching)*
+                           *elin.disableCaching()*   *(elin.disable-caching)*
+Note: Be sure that you enable vim's loader before elin's loader.
+>fennel
+  ;; init.fnl
+  (vim.loader.enable) ;; enable before (enable-caching) or not at all
+  (let [{: enable-caching : caching-enabled?} (require :elin)]
+    (enable-caching)
+    (print "Elin caching is enabled?" (caching-enabled?)))
+    ;; => Elin caching is enabled? true
+
+With caching enabled, using |require()| will auto-cache `.fnl` to `.luac`
+files for faster loading in future neovim sessions. Additionally, files loaded
+during |ftplugin.fnl| will also be auto-cached in the same way.
+
+Enabling caching, therefore, enables both the storing (for |require()| and
+filetype plugins or anything that |(elin.dofile)| evaluates) and detection of
+cached `.luac` files.
+
+                                                              *elin-utilities*
+Elin also exposes functions it uses internally to manage plugins, filetype
+plugins, the caching loader, etc. Feel free to use them where needed.
+
+                                               *elin.dofile()* *(elin.dofile)*
+This respects |elin-caching|. If not enabled, then it simply calls
+|(fennel.dofile)|.
+>fennel
+  ;; plugin/snippets.fnl
+  (local get-rtp-file _G.vim.api.nvim_get_runtime_file)
+  (fn activate-snippets []
+    "source &rtp/snippets/activate.fnl"
+    (case (. (get-rtp-file :snippets/activate.fnl false) 1)
+      snip-activ-path (let [{: dofile}] (require :eline)
+                        (dofile snip-activ-path))
+      _ (print "Fatal: Unable to find &rtp/snippets/activate.fnl")))
+<
+                             *elin.getCachePath()*   *(elin.get-cache-path)*
+                             *elin.getUncachePath()* *(elin.get-uncache-path)*
+                             *elin.getCacheDir()*    *(elin.get-cache-dir)*
+When |elin-caching| is enabled, it uses `get-cache-path` to turn an absolute
+path into an encoded path in the `cache dir`. Remember, you can set the
+`cache dir` with |(elin.setup)|. If you need to, you can also find the
+absolute path of a cached file path using `get-uncache-path`:
+>fennel
+  ;; plugin/test.fnl
+  (let [a-path (.. (vim.fn.stdpath :config) :/a/file.fnl)
+        {: setup
+        : get-cache-path
+        : get-uncache-path
+        : get-cache-dir} (:require elin)]
+    (setup {:cache-dir (.. (vim.fn.stdpath :cache) :foo))
+    (print (get-cache-dir))
+    (print (get-cache-path a-path))
+    (print (get-uncache-path (get-cache-path a-path))))
+  ;; stdout:
+  ; /home/me/.cache/nvim/foo/
+  ; /home/me/.cache/foo/%2fhome%2fme%2f%2econfig%2fnvim%2fa%2ffile%2efnl.luac
+  ; /home/me/.config/nvim/a/file.fnl
+
 ==============================================================================
 Elin Configuration                                               *elin-config*
-
-Note: Here {config} is the equal to what you see when you do: >vim
-        :echo stdpath("config")  " ~/.config/nvim on unix-y systems
-
-Note: INIT below refers to elin's initialization, which happens when
-      `plugin/startup.lua` is loaded during nvim's |startup|.
 
 If you are already familiar with vim's directory structure, then all you need
 to know is that anywhere you can use a `.lua` or `.vim` file, you can use a
@@ -79,15 +169,9 @@ When filetype is set, ftplugins and syntax are triggered:
 
 {config}/init.fnl                                                   *init.fnl*
 
-  If there is no |init.lua| or |init.vim|, elin will load |init.fnl| if it
-  exists. Ie, |init.fnl| has the lowest priority. This can't happen during
-  |startup|, but it does happen just after.
-
-  If you want to change the defaults, use |elin.setup|. Eg: >fennel
-    ;; init.fnl
-    (let [{: setup} (require :elin)]
-      (setup {:verbose false}))
-    (require :say-hi)
+  If there is no |init.lua| or |init.vim|, elin will load |init.fnl|. This
+  can't happen during |startup|, but it does happen during INIT when neovim is
+  sourcing files in `plugin/**`. TODO: see elin.setup()
 
 
 {config}/plugin/**/*.fnl                                          *plugin.fnl*
@@ -113,27 +197,29 @@ When filetype is set, ftplugins and syntax are triggered:
 b:undo_ftplugin_fnl                                        *undo_ftplugin_fnl*
 b:undo_ftplugin_lua                                        *undo_ftplugin_lua*
 
-  Set b:undo_ftplugin_fnl to a fennel expression (string) or fennel function
-  (lua). b:undo_ftplugin_lua is the same but for lua expressions and
-  functions. See just below for example usage.
+  Set `b:undo_ftplugin_fnl` to a fennel expression (string) or fennel function
+  (which is the same as a lua function). `b:undo_ftplugin_lua` is the same but
+  for lua expressions and functions. See |ftplugin.fnl| for an example.
 
 
 {config}/ftplugin/*.fnl                                         *ftplugin.fnl*
 {config}/after/ftplugin/*.fnl                             *after-ftplugin.fnl*
 
-  A corresponding filetype plugin is loaded when 'filetype' is set where `*`
-  is the 'filetype': >fennel
+  A corresponding filetype plugin is loaded when 'filetype' is set. The
+  filename without the `.fnl` suffix must be the 'filetype': >fennel
     ;; after/ftplugin/fennel.fnl
     (set vim.bo.formatprg "fnlfmt -")
     (set vim.b.undo_ftplugin_fnl "(set vim.bo.fp nil)")
+<
+  Note: A 'filetype' can have a ".", which is supported. Each fennel filetype
+        plugin will be sourced accordingly.
 <
   To disable (see |:filetype-plugin-off|, |:filetype-indent-off|): >fennel
     ;; init.fnl
     (vim.cmd.filetype "plugin off") ;; disables BOTH ftplugin/ AND indent/
     (vim.cmd.filetype "indent off") ;; disables indent/
-    ;; Note: these disable for .lua, .vim, and .fnl files
 <
-  Warning: a 'filetype' with a "." is not supported yet but will be soon!
+  Note: these disable plugin/indent for `.lua,` `.vim,` and `.fnl` files.
 
 
 {config}/syntax/*.fnl                                             *syntax.fnl*
@@ -148,85 +234,82 @@ b:undo_ftplugin_lua                                        *undo_ftplugin_lua*
     ;; init.fnl
     (vim.cmd.syntax :off)
     ;; Note: this disables syntax for .lua, .vim, and .fnl files
+<
+  Note: Above {config} is the equal to what you see when you do: >vim
+          :echo stdpath("config")  " ~/.config/nvim on unix-y systems
+<
+  Note: `after/**/*.fnl` is only used if `~/.config/nvim/after` is in
+        'runtimepath'. It is by default.
+
+  Note: INIT above refers to elin's initialization, which happens when
+        `plugin/startup.lua` is loaded during nvim's |startup|.
 
 ==============================================================================
-Fennel Commands                                              *fennel-commands*
+Fennel Commands                              *elin-commands* *fennel-commands*
 
 Note: :Fnl* commands gobble |bar| like commands listed in |:bar|.
 
 
 :Fnl[!] [{redir}] {expr}                                                *:Fnl*
-                        Evaluate {expr} as a fennel expression using the
-                        fennel interpreter.
+  Evaluate {expr} as a fennel expression using the fennel interpreter.
 
-                        [!] alters how the `result` is printed.
-                        Without [!] the result is printed with with `=>`
-                        prefix like "=> result". With it, no arrows are
-                        printed.
+  [!] alters how the `result` is printed. Without [!] the result is printed
+  with with `=>` prefix like "=> result". With it, no arrows are printed.
 
-                        Note: This is still a work in progress as each {redir}
-                        should have its own default and [!] can alter how it
-                        is displayed. It applies to all commands below. We
-                        actually probably want to parse our own indicators.
-                        Eg, sometimes we should use fennel.view(). Sometimes,
-                        we should prepend a comment (referencing &filetype).
-                        Etc.
+  Note: This is still a work in progress as each {redir} should have its own
+  default and [!] can alter how it is displayed. It applies to all commands
+  below. We actually probably want to parse our own indicators. Eg, sometimes
+  we should use fennel.view(). Sometimes, we should prepend a comment
+  (referencing &filetype). Etc.
 
-                        If {redir} is not specified, the `result` is printed
-                        to the cmdline. Otherwise, {redir} specifies if the
-                        `result` should into a register, a file, a vim or lua
-                        variable, or the current buffer. See |:redir|, which
-                        shares most of the syntax and ability. See
-                        |:Fnl-redir|.
+  If {redir} is not specified, the `result` is printed to the cmdline.
+  Otherwise, {redir} specifies if the `result` should into a register, a file,
+  a vim or lua variable, or the current buffer. See |:redir|, which shares
+  most of the syntax and ability. See |:Fnl-redir|.
 
 
 :FnlFiles[!] [{redir}] {file} [{file} ...]                         *:FnlFiles*
-                        Evaluate all {file}s as one fennel expression using
-                        the fennel interpreter.
+  Evaluate all {file}s as one fennel expression using the fennel interpreter.
 
-                        [!] alters how the `result` is printed.
-                        Without [!] the result is printed with with `=>`
-                        prefix like "=> result". With it, no arrows are
-                        printed.
+  [!] alters how the `result` is printed. Without [!] the result is printed
+  with with `=>` prefix like "=> result". With it, no arrows are printed.
 
-                        {redir} applies as with |:Fnl| if specified.
+  {redir} applies as with |:Fnl| if specified.
 
 
 :{range}FnlLines[!] [{redir}]                                      *:FnlLines*
-                        Evaluate {range} (default current line) as a fennel
-                        chunk.
+  Evaluate {range} (default current line) as a fennel chunk.
 
-                        [!] alters how the `result` is printed.
-                        Without [!] the result is printed with with `=>`
-                        prefix like "=> result". With it, no arrows are
-                        printed.
+  [!] alters how the `result` is printed. Without [!] the result is printed
+  with with `=>` prefix like "=> result". With it, no arrows are printed.
 
-                        {redir} applies as with |:Fnl| if specified.
+  {redir} applies as with |:Fnl| if specified.
+
 
 :[{range}]FnlSwiss[!] [{files}] [{redir}] [{files}] [{expr}]       *:FnlSwiss*
-                        This is all of the above commands merged into one
-                        tool: a multi-tool. Just like a Swiss army knife, it
-                        seems cool; but probably no one will ever need or want
-                        to use it.
+  This is all of the above commands merged into one
+  tool: a multi-tool. Just like a Swiss army knife, it
+  seems cool; but probably no one will ever need or want
+  to use it.
 
-                        [!] alters how the `result` is printed.
-                        Without [!] the result is printed with with `=>`
-                        prefix like "=> result". With it, no arrows are
-                        printed.
+  [!] alters how the `result` is printed.
+  Without [!] the result is printed with with `=>`
+  prefix like "=> result". With it, no arrows are
+  printed.
 
-                        {range} can be provided like with |:FnlLines|.
+  {range} can be provided like with |:FnlLines|.
 
-                        {files} can be provided like with |:FnlFiles|.
-                        However, each file must be `<` (and optional space)
-                        and can only come just before and/or after {redir}.
+  {files} can be provided like with |:FnlFiles|.
+  However, each file must be `<` (and optional space)
+  and can only come just before and/or after {redir}.
 
-                        {expr} can be provided like with |:Fnl|.
+  {expr} can be provided like with |:Fnl|.
 
-                        If any are specified, FnlSwiss evaluates the {range}
-                        first, then all {files} in order, and finally any
-                        {expr}s.
+  If any are specified, FnlSwiss evaluates the {range}
+  first, then all {files} in order, and finally any
+  {expr}s.
 
-                        {redir} applies as with |:Fnl| if specified.
+  {redir} applies as with |:Fnl| if specified.
 
 
                                                                   *:Fnl-redir*
@@ -234,7 +317,7 @@ Note: :Fnl* commands gobble |bar| like commands listed in |:bar|.
 be specified before the {expr}. Here is a list of all redirs:
 
   :Fnl > {file} {expr}     (Always) Write result to {file}.
-                          Note: [!] doesn't work like |:redir|
+                           Note: [!] doesn't work like |:redir|
   :Fnl >> {file} {expr}    Append result to {file}
 
   :Fnl @{a-zA-Z}> {expr}   Save result to register {a-z}; append if {A-Z}
@@ -244,7 +327,7 @@ be specified before the {expr}. Here is a list of all redirs:
   :Fnl @{*+"}> {expr}      Save result to `*`, `+`, or `"` register
   :Fnl @{*+"} {expr}       Same as above (compat)
   :Fnl @{*+"}>> {expr}     Append result `*`, `+`, or `"` register
-                          See |quotestar|, |quote+|, and |quotequote|
+                           (See |quotestar|, |quote+|, and |quotequote|.)
 
   :Fnl => {var} {expr}     Save result to g:{var} (vim global variable)
   :Fnl =>> {var} {expr}    Append result to g:{var}
@@ -258,7 +341,7 @@ be specified before the {expr}. Here is a list of all redirs:
   :Fnl == {expr}           |:put| result
 
 Synopsis:
-    {redir}  Description ~
+      Redir  Description ~
    > {file}  write `result` to file {file}
   >> {file}  append `result` to file {file}
         @+>  save `result` to register `@+` (same as @+>)
@@ -297,9 +380,11 @@ Thanks also to other projects that bring fennel into neovim. You all make the
 fennel ecosystem a little brighter.
                                               |
 https://github.com/Olical/aniseed            -*-
-https://github.com/gpanders/nvim-moonwalk     |                    |
-https://github.com/alexaandru/fennel-nvim                         -*-
-https://github.com/udayvir-singh/tangerine.nvim                    |
+https://github.com/jaawerth/fennel.vim        |
+https://github.com/jaawerth/fennel-nvim                            |
+https://github.com/gpanders/nvim-moonwalk                         -*-
+https://github.com/alexaandru/fennel-nvim                          |
+https://github.com/udayvir-singh/tangerine.nvim
 
 ==============================================================================
 Lore                                                             *elin-lore*

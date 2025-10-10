@@ -1,15 +1,19 @@
-(local fennel (require :fennel))
+(local elin (require :elin))
 
 (fn try [func]
   "try to execute function; print fennel.traceback on error"
-  (xpcall func (fn [err] (print fennel.traceback err) err)))
+  (xpcall func (fn [err]
+                 (let [{: traceback} (require :fennel)]
+                   (print traceback err)
+                   err))))
 
 (fn undo-ft-plugin [ev typ]
   "helper for b:undo_{ftplugin,indent}_{fnl,lua}"
   (let [undo-fnl (. _G.vim.b ev.buf (.. :undo_ typ :_fnl))
         undo-lua (. _G.vim.b ev.buf (.. :undo_ typ :_lua))]
     (when (or undo-fnl undo-lua)
-      (if (= (type undo-fnl) :string) (try #(fennel.eval undo-fnl))
+      (if (= (type undo-fnl) :string) (try #(let [{: eval} (require :fennel)]
+                                              (eval undo-fnl)))
           (= (type undo-fnl) :function) (try #(undo-fnl))
           (= (type undo-lua) :string) (try #(_G.vim.fn.luaeval undo-lua nil))
           (= (type undo-lua) :function) (try #(undo-lua)))
@@ -23,7 +27,7 @@
     (let [paths (-> (_G.string.format "%s/%s.fnl %s/%s_*.fnl" typ ft typ ft)
                     (_G.vim.api.nvim_get_runtime_file true))]
       (each [_ path (ipairs paths)]
-        (try #(fennel.dofile path)))))
+        (try #(elin.dofile path)))))
   nil)
 
 (fn do-syntax [ev]
@@ -32,7 +36,7 @@
     (let [paths (-> (_G.string.format "syntax/%s.fnl" ft)
                     (_G.vim.api.nvim_get_runtime_file true))]
       (each [_ path (ipairs paths)]
-      path (try #(fennel.dofile path)))))
+      path (try #(elin.dofile path)))))
   nil)
 
 (fn do-filetype-plugins [ev]

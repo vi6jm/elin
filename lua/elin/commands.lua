@@ -77,6 +77,9 @@ do
   local to_all = (to_file + to_reg + to_vim_var + to_fnl_var + to_put)
   cmd_2a = ((Ct((_5cs_2a * to_all)) * _2a_2a) + (Ct("") * _2a_2a))
 end
+local function werr(msg)
+  return _G.vim.api.nvim_echo({{msg}}, true, {err = true, kind = "errormsg"})
+end
 local function view_result(bang_3f, result)
   local _let_12_ = require("fennel")
   local view = _let_12_["view"]
@@ -148,19 +151,16 @@ local function handle(bang_3f, matches, expr)
   local eval = _local_22_["eval"]
   local _23_, _24_ = nil, nil
   local function _25_()
-    return eval(expr, {filename = "stdin"})
+    return eval(expr, {filename = "stdin", ["error-pinpoint"] = false})
   end
-  _23_, _24_ = pcall(_25_)
+  local function _26_(err)
+    werr(err)
+    return err
+  end
+  _23_, _24_ = xpcall(_25_, _26_)
   if ((_23_ == true) and (nil ~= _24_)) then
     local result = _24_
     return handle_matches(bang_3f, matches, result)
-  elseif (true and (nil ~= _24_)) then
-    local _ = _23_
-    local err = _24_
-    local function _26_(_241)
-      return _241
-    end
-    return _G.vim.api.nvim_err_writeln(_26_(err:gsub("\n.*", ("\nconcatenated input:\n  " .. expr:gsub("\n", "\n  ")))))
   else
     return nil
   end

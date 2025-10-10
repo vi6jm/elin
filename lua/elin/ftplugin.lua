@@ -1,7 +1,9 @@
-local fennel = require("fennel")
+local elin = require("elin")
 local function try(func)
   local function _1_(err)
-    print(fennel.traceback, err)
+    local _let_2_ = require("fennel")
+    local traceback = _let_2_["traceback"]
+    print(traceback, err)
     return err
   end
   return xpcall(func, _1_)
@@ -11,25 +13,27 @@ local function undo_ft_plugin(ev, typ)
   local undo_lua = _G.vim.b[ev.buf][("undo_" .. typ .. "_lua")]
   if (undo_fnl or undo_lua) then
     if (type(undo_fnl) == "string") then
-      local function _2_()
-        return fennel.eval(undo_fnl)
-      end
-      try(_2_)
-    elseif (type(undo_fnl) == "function") then
       local function _3_()
-        return undo_fnl()
+        local _let_4_ = require("fennel")
+        local eval = _let_4_["eval"]
+        return eval(undo_fnl)
       end
       try(_3_)
-    elseif (type(undo_lua) == "string") then
-      local function _4_()
-        return _G.vim.fn.luaeval(undo_lua, nil)
-      end
-      try(_4_)
-    elseif (type(undo_lua) == "function") then
+    elseif (type(undo_fnl) == "function") then
       local function _5_()
-        return undo_lua()
+        return undo_fnl()
       end
       try(_5_)
+    elseif (type(undo_lua) == "string") then
+      local function _6_()
+        return _G.vim.fn.luaeval(undo_lua, nil)
+      end
+      try(_6_)
+    elseif (type(undo_lua) == "function") then
+      local function _7_()
+        return undo_lua()
+      end
+      try(_7_)
     else
     end
     _G.vim.b[ev.buf][("undo_" .. typ .. "_fnl")] = nil
@@ -43,10 +47,10 @@ local function do_ft_plugin(ev, typ)
   for ft in _G.string.gmatch(ev.match, "[^.]+") do
     local paths = _G.vim.api.nvim_get_runtime_file(_G.string.format("%s/%s.fnl %s/%s_*.fnl", typ, ft, typ, ft), true)
     for _, path in ipairs(paths) do
-      local function _8_()
-        return fennel.dofile(path)
+      local function _10_()
+        return elin.dofile(path)
       end
-      try(_8_)
+      try(_10_)
     end
   end
   return nil
@@ -55,10 +59,10 @@ local function do_syntax(ev)
   for ft in _G.string.gmatch(ev.match, "[^.]+") do
     local paths = _G.vim.api.nvim_get_runtime_file(_G.string.format("syntax/%s.fnl", ft), true)
     for _, path in ipairs(paths) do
-      local function _9_()
-        return fennel.dofile(path)
+      local function _11_()
+        return elin.dofile(path)
       end
-      try(_9_)
+      try(_11_)
     end
   end
   return nil

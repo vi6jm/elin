@@ -46,6 +46,10 @@
         to-all (+ to-file to-reg to-vim-var to-fnl-var to-put)]
     (+ (* (Ct (* \s* to-all)) **) (* (Ct "") **)))) ; ~ /({to-all}{**}|{**})/
 
+(fn werr [msg]
+  "write error message using nvim_echo"
+  (_G.vim.api.nvim_echo [[msg]] true {:err true :kind :errormsg}))
+
 (fn view-result [bang? result]
   (let [{: view} (require :fennel)
         result (view result)]
@@ -71,11 +75,9 @@
 ;; todo remove eval and let each fn below handle it's a pain but it's required
 (fn handle [bang? matches expr]
   (local {: eval} (require :fennel))
-  (case (pcall #(eval expr {:filename :stdin}))
-    (true result) (handle-matches bang? matches result)
-    (_ err) (_G.vim.api.nvim_err_writeln
-              (#$1 (err:gsub "\n.*" (.. "\nconcatenated input:\n  "
-                                        (expr:gsub "\n" "\n  ")))))))
+  (case (xpcall #(eval expr {:filename :stdin :error-pinpoint false})
+                (fn [err] (werr err) err))
+    (true result) (handle-matches bang? matches result)))
 
 (fn do-eval [bang? cmd]
   ; "Eval fennel expression; eg :Fnl (print :hello :world)"
