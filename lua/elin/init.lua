@@ -121,13 +121,13 @@ local function write_cache(path, cpath, _3fopts)
   end
   return close_handlers_12_(_G.xpcall(_6_, or_18_.traceback))
 end
-local function dofile_cached(path)
+local function dofile_cached(path, _3fopts)
   local cpath = get_cache_path(path)
   local cstat = fs_stat(cpath)
   local stat = fs_stat(path)
   local _20_
   if ((cstat == nil) or (cstat.mtime.sec < stat.mtime.sec) or (cstat.mtime.nsec < stat.mtime.nsec)) then
-    _20_ = write_cache(path, cpath)
+    _20_ = write_cache(path, cpath, _3fopts)
   else
     _20_ = _G.loadstring(readfile(cpath, 438))
   end
@@ -138,14 +138,14 @@ local function dofile_cached(path)
     return nil
   end
 end
-local function dofile(path)
+local function dofile(path, _3fopts)
   local f
   if caching_enabled then
     f = dofile_cached
   else
     f = require("fennel").dofile
   end
-  return f(path)
+  return f(path, _3fopts)
 end
 local function loader(mod)
   local mod0 = mod:gsub("^[/.]+", ""):gsub("%.", "/")

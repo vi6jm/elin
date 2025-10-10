@@ -56,21 +56,21 @@
                       f)
         (_ err) (values nil err)))))
 
-(fn dofile-cached [path]
+(fn dofile-cached [path ?opts]
   "fennel dofile with auto-lua caching"
   (let [cpath (get-cache-path path)
         cstat (fs_stat cpath)
         stat (fs_stat path)]
     (case (if (or (= cstat nil) (< cstat.mtime.sec stat.mtime.sec)
                   (< cstat.mtime.nsec stat.mtime.nsec))
-              (write-cache path cpath)
+              (write-cache path cpath ?opts)
               (_G.loadstring (readfile cpath 438)))
       f (f))))
 
-(fn dofile [path]
+(fn dofile [path ?opts]
   "dofile-cached or fennel.dofile (respects caching-enabled)"
   (let [f (if caching-enabled dofile-cached (. (require :fennel) :dofile))]
-    (f path)))
+    (f path ?opts)))
 
 (fn loader [mod]
   "fnl loader with auto-luac caching"
