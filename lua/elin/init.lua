@@ -1,5 +1,4 @@
 local version = "v0.0.6"
-local fennel = require("fennel")
 local fs_stat = _G.vim.uv["fs_stat"]
 local fs_fstat = _G.vim.uv["fs_fstat"]
 local fs_open = _G.vim.uv["fs_open"]
@@ -29,11 +28,6 @@ end
 local function caching_enabled_3f()
   return caching_enabled
 end
-do
-  local config = _G.vim.fn.stdpath("config")
-  fennel.path = (config .. "/fnl/?.fnl;" .. config .. "/fnl/?/init.fnl")
-end
-fennel.install()
 local function werr(msg)
   return _G.vim.api.nvim_echo({{msg}}, true, {err = true, kind = "errormsg"})
 end
@@ -74,68 +68,71 @@ local function write_cache(path, cpath, _3fopts)
     end
   end
   local function _6_()
-    local _7_, _8_ = nil, nil
-    local function _9_()
-      return fennel.compile(fh, (_3fopts or {filename = path, correlate = true}))
+    local _let_7_ = require("fennel")
+    local compile = _let_7_["compile"]
+    local traceback = _let_7_["traceback"]
+    local _8_, _9_ = nil, nil
+    local function _10_()
+      return compile(fh, (_3fopts or {filename = path, correlate = true}))
     end
-    local function _10_(err)
-      werr(fennel.traceback(err))
+    local function _11_(err)
+      werr(traceback(err))
       return err
     end
-    _7_, _8_ = xpcall(_9_, _10_)
-    if ((_7_ == true) and (nil ~= _8_)) then
-      local code = _8_
+    _8_, _9_ = xpcall(_10_, _11_)
+    if ((_8_ == true) and (nil ~= _9_)) then
+      local code = _9_
       local fh0 = fs_open(cpath, "w", 438)
       local f = _G.loadstring(code)
       fs_write(fh0, string.dump(f, true))
       fs_close(fh0)
       return f
-    elseif (true and (nil ~= _8_)) then
-      local _ = _7_
-      local err = _8_
+    elseif (true and (nil ~= _9_)) then
+      local _ = _8_
+      local err = _9_
       return nil, err
     else
       return nil
     end
   end
-  local _13_
+  local _14_
   do
-    local t_12_ = _G
-    if (nil ~= t_12_) then
-      t_12_ = t_12_.package
+    local t_13_ = _G
+    if (nil ~= t_13_) then
+      t_13_ = t_13_.package
     else
     end
-    if (nil ~= t_12_) then
-      t_12_ = t_12_.loaded
+    if (nil ~= t_13_) then
+      t_13_ = t_13_.loaded
     else
     end
-    if (nil ~= t_12_) then
-      t_12_ = t_12_.fennel
+    if (nil ~= t_13_) then
+      t_13_ = t_13_.fennel
     else
     end
-    _13_ = t_12_
+    _14_ = t_13_
   end
-  local or_17_ = _13_ or _G.debug
-  if not or_17_ then
-    local function _18_()
+  local or_18_ = _14_ or _G.debug
+  if not or_18_ then
+    local function _19_()
       return ""
     end
-    or_17_ = {traceback = _18_}
+    or_18_ = {traceback = _19_}
   end
-  return close_handlers_12_(_G.xpcall(_6_, or_17_.traceback))
+  return close_handlers_12_(_G.xpcall(_6_, or_18_.traceback))
 end
 local function dofile_cached(path)
   local cpath = get_cache_path(path)
   local cstat = fs_stat(cpath)
   local stat = fs_stat(path)
-  local _19_
+  local _20_
   if ((cstat == nil) or (cstat.mtime.sec < stat.mtime.sec) or (cstat.mtime.nsec < stat.mtime.nsec)) then
-    _19_ = write_cache(path, cpath)
+    _20_ = write_cache(path, cpath)
   else
-    _19_ = _G.loadstring(readfile(cpath, 438))
+    _20_ = _G.loadstring(readfile(cpath, 438))
   end
-  if (nil ~= _19_) then
-    local f = _19_
+  if (nil ~= _20_) then
+    local f = _20_
     return f()
   else
     return nil
@@ -146,15 +143,15 @@ local function dofile(path)
   if caching_enabled then
     f = dofile_cached
   else
-    f = fennel.dofile
+    f = require("fennel").dofile
   end
   return f(path)
 end
 local function loader(mod)
   local mod0 = mod:gsub("^[/.]+", ""):gsub("%.", "/")
-  local _23_ = get_rtp_file(("fnl/" .. mod0 .. ".fnl" .. " fnl/" .. mod0 .. "/init.fnl"), false)[1]
-  if (nil ~= _23_) then
-    local path = _23_
+  local _24_ = get_rtp_file(("fnl/" .. mod0 .. ".fnl" .. " fnl/" .. mod0 .. "/init.fnl"), false)[1]
+  if (nil ~= _24_) then
+    local path = _24_
     local cpath = get_cache_path(path)
     local cstat = fs_stat(cpath)
     local stat = fs_stat(path)
@@ -168,13 +165,6 @@ local function loader(mod)
   end
 end
 local function disable_caching()
-  local _26_
-  if _G.package.loaders then
-    _26_ = "loaders"
-  else
-    _26_ = "searchers"
-  end
-  local _28_
   do
     local tbl_21_ = {}
     local i_22_ = 0
@@ -191,9 +181,8 @@ local function disable_caching()
       else
       end
     end
-    _28_ = tbl_21_
+    _G.package.loaders = tbl_21_
   end
-  _G.package[_26_] = _28_
   caching_enabled = false
   return nil
 end
@@ -202,7 +191,7 @@ local function enable_caching()
     disable_caching()
   else
   end
-  _G.table.insert(loaders, 2, loader)
+  _G.table.insert(_G.package.loaders, 2, loader)
   caching_enabled = true
   return nil
 end

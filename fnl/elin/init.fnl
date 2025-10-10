@@ -1,6 +1,5 @@
 (local version :v0.0.6)
 
-(local fennel (require :fennel))
 (local {: fs_stat : fs_fstat : fs_open : fs_read : fs_write : fs_close}
        _G.vim.uv)
 
@@ -20,10 +19,6 @@
 (fn get-version [] version)
 (fn get-cache-dir [] cache-dir)
 (fn caching-enabled? [] caching-enabled)
-
-(let [config (_G.vim.fn.stdpath :config)]
-  (set fennel.path (.. config "/fnl/?.fnl;" config "/fnl/?/init.fnl")))
-(fennel.install)
 
 (fn werr [msg]
   "write error message using nvim_echo"
@@ -51,14 +46,15 @@
 (fn write-cache [path cpath ?opts]
   "cache {path} (fnl) to {cpath} (luac); compile with {?opts}"
   (with-open [fh (_G.io.open path)]
-    (case (xpcall #(fennel.compile fh (or ?opts {:filename path :correlate true}))
-                  (fn [err] (werr (fennel.traceback err)) err))
-      (true code) (let [fh (fs_open cpath :w 438)
-                        f (_G.loadstring code)]
-                    (fs_write fh (string.dump f true))
-                    (fs_close fh)
-                    f)
-      (_ err) (values nil err))))
+    (let [{: compile : traceback} (require :fennel)]
+      (case (xpcall #(compile fh (or ?opts {:filename path :correlate true}))
+                    (fn [err] (werr (traceback err)) err))
+        (true code) (let [fh (fs_open cpath :w 438)
+                          f (_G.loadstring code)]
+                      (fs_write fh (string.dump f true))
+                      (fs_close fh)
+                      f)
+        (_ err) (values nil err)))))
 
 (fn dofile-cached [path]
   "fennel dofile with auto-lua caching"
@@ -73,7 +69,7 @@
 
 (fn dofile [path]
   "dofile-cached or fennel.dofile (respects caching-enabled)"
-  (let [f (if caching-enabled dofile-cached fennel.dofile)]
+  (let [f (if caching-enabled dofile-cached (. (require :fennel) :dofile))]
     (f path)))
 
 (fn loader [mod]
@@ -88,7 +84,7 @@
 
 (fn disable-caching []
   "disable elin loader and dofile caching"
-  (tset _G.package (if _G.package.loaders :loaders :searchers)
+  (set _G.package.loaders
         (icollect [_ l (ipairs loaders)]
           (when (not= l loader)
             loader)))
@@ -99,7 +95,7 @@
   "enable elin loader with auto-luac caching"
   (when caching-enabled
     (disable-caching))
-  (_G.table.insert loaders 2 loader)
+  (_G.table.insert _G.package.loaders 2 loader)
   (set caching-enabled true)
   nil)
 
