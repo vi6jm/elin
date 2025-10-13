@@ -4,67 +4,8 @@
 
 ;; todo?: respect $NVIM_APPNAME
 
-;; todo: duplicate for elin.init() when available
-
-;; preload fennel.luac (5x perf increase) (user can't consent .. c'est la vie)
-(local fennel
-     (let [{: fs_open : fs_fstat : fs_read : fs_close : fs_write} _G.vim.uv]
-       (case (. (_G.vim.api.nvim_get_runtime_file :lua/fennel.luac false) 1)
-         path (let [fh (fs_open path :r 438)
-                    size (. (assert (fs_fstat fh)) :size)
-                    data (fs_read fh size 0)]
-                (fs_close fh)
-                (case (_G.loadstring data)
-                  f (f)))
-         _ (case (. (_G.vim.api.nvim_get_runtime_file :lua/fennel.lua false) 1)
-             path (let [cpath (.. path :c)
-                        fh (fs_open cpath :w 438)
-                        f (loadfile path)]
-                    (fs_write fh (string.dump f true))
-                    (fs_close fh)
-                    (f))
-             _ (do
-                 (print "Fatal: unable to find fennel.lua module")
-                 nil)))))
-(set _G.package.loaded.fennel fennel)
-
 (local elin (require :elin))
-
-(let [config (_G.vim.fn.stdpath :config)]
-  (set fennel.path (.. config "/fnl/?.fnl;" config "/fnl/?/init.fnl")))
-(fennel.install)
-
-
-(fn no-rtp-file [glob]
-  "true if {glob} is not in &runtimepath; else false"
-  (= (. (_G.vim.api.nvim_get_runtime_file glob false) 1) nil))
-
-(fn all-rtp-files [glob]
-  "get all files matching {glob} in &runtimepath"
-  (_G.vim.api.nvim_get_runtime_file glob true))
-
-(fn try [func]
-  "try to execute function; print fennel.traceback on error"
-  (xpcall func (fn [err] (print fennel.traceback err) err)))
-
-;; load init.fnl (if exists) when init.{lua,vim} not found
-(when (and (no-rtp-file :init.lua) (no-rtp-file :init.vim))
-  (case (_G.vim.api.nvim_get_runtime_file :init.fnl false)
-    [file] (do
-             (_G.vim.uv.os_setenv :MYVIMRC file)
-             (try #(elin.dofile file)))))
-
-;; plugin INIT
-(each [_ path (ipairs (all-rtp-files :plugin/**/*.fnl))]
-  (try #(elin.dofile path)))
-
-;; lsp INIT
-(each [_ path (ipairs (all-rtp-files :lsp/*.fnl))]
-  (try #(with-open [file (_G.io.open path)]
-          (let [config (fennel.eval (file:read :*a))
-                name (-> path (: :gsub ".*/" "") (: :gsub "%.fnl$" ""))]
-            (_G.vim.lsp.config name config)))))
-
+(elin.do-startup)
 
 (let [cmd _G.vim.api.nvim_create_user_command]
   (cmd :Fnl (fn [ev]
