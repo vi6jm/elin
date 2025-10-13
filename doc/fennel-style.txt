@@ -1,4 +1,4 @@
-*fennel-style.txt                 Style Guide             *fennel-style-guide*
+*fennel-style.txt*                 Style Guide             *fennel-style-guide*
 
 Style is a tricky thing to define. The purpose of this style guide is to
 provide advice for how to write code that is clear and concise. Its advice is
