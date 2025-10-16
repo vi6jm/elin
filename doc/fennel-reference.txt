@@ -223,9 +223,9 @@ Here the arglist is overridden by that in the metadata table (note that the
 contents of the table are implicitly quoted). Calling `,doc` command in the
 REPL prints specified argument list of the next form:
 >
-    >> ,doc add
-    (add a b & more)
-      Add arbitrary amount of numbers.
+  >> ,doc add
+  (add a b & more)
+    Add arbitrary amount of numbers.
 <
                                                              *fennel-metadata*
 (Since 1.3.0)
@@ -278,11 +278,11 @@ metadata table by the compiler.
 The whole metadata table can be obtained by calling `metadata:get` without the
 `key` argument:
 >
-    >> (local {: metadata} (require :fennel))
-    >> (metadata:get some-function)
-    {:fnl/arglist ["x" "&" "xs"]
-     :fnl/docstring "Docstring for some-function."
-     :other "metadata"}
+  >> (local {: metadata} (require :fennel))
+  >> (metadata:get some-function)
+  {:fnl/arglist ["x" "&" "xs"]
+    :fnl/docstring "Docstring for some-function."
+    :other "metadata"}
 
 Fennel itself only uses the `fnl/docstring` and `fnl/arglist` metadata keys
 but third-party code can make use of arbitrary keys.
@@ -407,8 +407,8 @@ binding.
 
 Example:
 >fennel
-    (let [(x y z) (table.unpack [10 9 8])]
-      (+ x y z)) ; => 27
+  (let [(x y z) (table.unpack [10 9 8])]
+    (+ x y z)) ; => 27
 <
                                                                 *fennel-local*
 Introduces a new local inside an existing scope. Similar to `let` but without

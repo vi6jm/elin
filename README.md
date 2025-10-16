@@ -1,11 +1,9 @@
 
 # elin
 
-*Extensible Lisp Integration for Neovim*
-
-**v0.0.7**
-
-**Requirements:** Neovim +v0.8.0
+> *Extensible Lisp Integration for Neovim*
+> **v0.0.7**
+> for neovim +v0.8.0
 
 
 ## About
@@ -37,8 +35,8 @@ cd ~/.config/nvim;
 git clone $elin pack/local/start/elin;
 ```
 
-With a package manager, just install it into `&rtp` however. It uses
-`&rtp/plugin/startup.lua` to bootstrap itself.
+Or install it noramlly with package manager (it uses `&rtp/plugin/startup.lua`
+to bootstrap itself).
 
 
 ## Elin Module
@@ -51,22 +49,21 @@ equivalents for ease of use in lua. Examples:
 
 ### happy path
 
-This is all I do, and I am happy; therefore, this will work for you, too:
+This is all I do, and I am happy; therefore, this will make you happy, too:
 
 ```fennel
 ;; init.fnl
-(_G.vim.loader.enable)                      ;; enable .lua caching
-(let [{: enable-caching : dofile} (require :elin)
-      config (_G.vim.fn.stdpath :config)]
-  (enable-caching)                          ;; enable .fnl caching
-  (dofile (.. config :/fnl/pack/init.fnl))) ;; load plugin config
+(let [{:enable nvim-cache} _G.vim.loader
+      {:enable-caching elin-cache} (require :elin)
+      {:setup bp-setup (require :backpack)]
+  (nvim-cache) ;; enable .lua caching
+  (elin-cache) ;; enable .fnl caching
+  (bp-setup))  ;; set up pack plugins
 nil
 ```
 
-This enables `vim.loader` and elin caching to speed up neovim startup by over
-100ms (for me). Then, I early load my plugin configuration at
-{config}/fnl/pack/init.fnl. The rest of my configuration is in `plugin.fnl`,
-`ftplugin.fnl`, etc files. See `elin-config` for more information.
+Just kidding. See the rest of the help to learn how elin can better suit your
+wants and needs for using fennel for neovim config.
 
 
 ### startup
@@ -102,145 +99,45 @@ Now just add `.fnl` files to `plugin/`, `ftplugin/`, etc. (see `elin-config`)!
 
 ### module methods
 
-`(elin.setup {opts})`
+- `(elin.setup {opts})`: change how elin behaves
+  - with `enable-caching = true` in opts, enable caching
+  - with `cache-dir = "path"` in opts, change where cached files are stored
+- `(elin.do-startup {opts})`: source `init.fnl` and every `plugin.fnl`
+    - with `do-init-fnl = true` in opts, load `init.fnl` even if an `init.lua`
+      is detected
+    - with `force = true` in opts, do startup even if it was already executed
+- `(elin.dofile {path} {opts})`: like `fennel.dofile()` but respect caching.
+- `(elin.get-version)`: get version; current version: `v0.0.7`
+- `(elin.enable-caching)`: enable caching; similar to `vim.loader`
+- `(elin.disable-caching)`: disable caching
+- `(elin.caching-enabled?)`: true if caching enabled; else false
+- `(elin.get-cache-path {path})`: get cache path for path
+- `(elin.get-uncache-path {cpath})`: get path from cache path
+- `(elin.get-cache-dir)`: get cache dir (can be changed in `(elin.setup)`
 
-Change how elin behaves. Defaults:
-
-```fennel
-(let [{: setup} (require :elin)]
-    (setup {:enable-caching false
-            :cache-dir (.. (vim.fn.stdpath :cache) :elin)}))
-```
-
-- **Parameters:** `{opts}?` (`table?`) Options for customizing elin behavior:
-    - `{enable-caching}` (`boolean?`, default: `false`) enables caching for
-      fennel modules loaded via `require()` and `(elin.dofile)`. This is the
-      same as invoking `(elin.enable-caching)`.
-    - `{cache-dir}` (`string?`, default: `(vim.fn.stdpath :config) .. :elin)`)
-      directory where elin stores its cached `.luac` files.
-
-**Note:** Elin is intended to be a drop-in fennel bootstrapper. Therefore,
-there is not much to customize (yet?). If you want something to be more
-flexible, don't hestitate to open an issue or notify the maintainer.
-
----
-
-`(elin.do-startup {opts})`
-
-This attempts to source `init.fnl` (unless `init.lua` or `init.vim` exists and
-{do-init-fnl} is not `true`) and then sources every `plugin.fnl`.
-
-This is called implicitly during `startup` when `elin/plugin/startup.lua` is
-loaded, but it can be called earlier during `init.lua` if desired. It guards
-itself against repetitive invocations unless {force} is `true`.
-
-- **Parameters:** {opts}? (`table?`) Options for `do-startup`:
-    - `{do-init-fnl}?` (`boolean`, default: `false`) source `init.fnl` even if
-      `init.lua` or `init.vim` are detected.
-    - `{force}?` (`boolean?`, default: `false`) do startup even if it was
-      already done.
-
----
-
-`(elin.dofile {path} {opts})`
-
-With caching enabled, use cache to load byte-compiled code associated with
-`{path}`. Otherwise, this is the same as `(fennel.dofile {opts})`.
-
-When the cached file doesn't exist or has an `mtime` older than the file at
-{path}, load {path} with `(fennel.dofile)` and store its luajit byte code into
-the cache path, which can be found with `(elin.get-cache-path {path})`.
-
-- **Parameters:** `{opts}?` (`table`) Options passed to `(fennel.dofile)`.
-
-- **Return:** (`any`) The result of the loaded file or byte code
-
----
-
-`(elin.get-version)`
-  Get elin's version in the format `"v{major}.{minor}.{patch}"`. The current
-  version is `v0.0.7`.
-
-- **Return:** (`string`) The version
-
----
-
-`(elin.enable-caching)` / `(elin.disable-caching)`
-
-This is similar to neovim's experimental `vim.loader`, but it caches fennel to
-luajit byte code instead of lua.
-
-- Enable:
-    - uses a loader so that `require()` on `.fnl` files uses cached byte code
-    - `(elin.dofile)` also uses the byte-compilation cache
-
-- Disable:
-    - removes the loader
-    - `(elin.dofile)` uses `(fennel.dofile)` always
-
----
-
-`(elin.caching-enabled?)`
-
-Check if caching was enabled via `(elin.enable-caching)`
-
-- **Return:** (`boolean`) Caching enabled?
-
----
-
-`(elin.get-cache-path {path})` / `(elin.get-uncache-path {cpath})`
-
-Get a file's cache path from an absolute {path} or get the uncached path from
-{cpath}. These are complementary functions that reverse the other.
-
-Example:
-
-```fennel
-(local elin (require :elin))
-(print (elin.get-cache-path "/home/me/foo.fnl"))
-;; => "/home/me/.cache/nvim/elin/%2fhome%2fme%2ffoo%2efnl.luac"
-(print (elin.get-uncache-path
-"/home/me/.cache/nvim/elin/%2fhome%2fme%2ffoo%2efnl.luac"))
-;; => "/home/me/foo.fnl"
-```
-
-- **Parameters:** `{path}` or `{cpath}` (`string`) path or cached path to turn
-  into the other
-
-- **Return:** (`string`) The cached or uncached path
-
-
----
-
-`(elin.get-cache-dir)`
-
-Get the directory where `.luac` (luajit byte code) files are stored. This can be
-changed with `(elin.setup)`. `(elin.get-cache-path)` also references this
-setting.
-
-- **Return:** (`string`, default: `(.. (vim.fn.stdpath :cache) :elin)`) Elin's
-  cache directory.
+See `:help elin-module` in neovim for more complete documentation.
 
 
 ## Configuration
 
-INIT:
+Startup:
 - `{config}/init.fnl`
 - `{config}/plugin/**/*.fnl`
 - `{config}/after/plugin/**/*.fnl`
 - `{config}/lsp/*.fnl`
 
-Before filetype plugins:
-- `b:undo_ftplugin_fnl` `(string|function)` fennel string (or function)
-- `b:undo_ftplugin_lua` `(string|function)` lua string (or function)
+Before filetype plugins (like `b:undo_ftplugin` but for fennel/lua):
+- `b:undo_ftplugin_fnl` fennel expression / function
+- `b:undo_ftplugin_lua` lua expression / function
 
-filetype plugins:
+Filetype plugins:
 - `{config}/ftplugin/*.fnl`
 - `{config}/after/ftplugin/*.fnl`
 - `{config}/syntax/*.fnl`
 - `{config}/after/syntax/*.fnl`
 
-In noevim, use `:help elin-config` for more information.
+Use `:help elin-config` for more information.
+
 
 ## Commands
 
@@ -249,39 +146,30 @@ In noevim, use `:help elin-config` for more information.
 - `:[range]FnlLines [{redir}]`
 - `:[range]FnlSwiss  [{redir}] ...] [{expr} ...]`
 
+`{redir}` is optional and means that each command can use special syntax to
+redirect the *result* of the fennel evaluation to various places:
 
-### Commands Redir
+| `{redir}`  | Description |
+| -------- | ----------- |
+| `> {file}` | write *result* to file `{file}` <sup>\[1\]</sup> |
+| `< {file}` | include `{file}` in evaluated expression <sup>\[2\]</sup> |
+| `@a>`      | save *result* to `@a` <sup>\[1\] \[2\] \[3\] |
+| `=> {var}` | save *result* to vim variable `g:{var}` <sup>\[1\]</sup> |
+| `-> {var}` | save *result* to lua variable `_G.{var}` <sup>\[1\]</sup> |
+| `==`       | `:put` *result* on new line |
 
-Above, `{redir}` is optional and means that each command can use special syntax
-to redirect the *result* of the fennel evaluation to various places.
+- <sup>\[1\]</sup> replace `>` with `>>` to append instead of overwrite
+- <sup>\[2\]</sup> `:FnlSwiss` only
+- <sup>\[3\]</sup> `@+`, `@*`, `@"`, `@_` also supported
 
-| `{redir}` | Description |
-| --- | --- |
-| `> {file}` | write *result* to file `{file}` |
-| `@a`, `@a>` | save *result* to register `@a` |
-| `@A`, `@a>>` | append *result* to register `@a` |
-| `@+`, `@*`, `@"` | save *result* to PRIMARY, SELECT, or `@"` (resp.) |
-| `@+>`, `@*>`, `@">` | (same as above) |
-| `@+>>`, `@*>>`, `@">>` | same as above but append to register |
-| `=> {var}` | save *result* to vim variable `g:{var}` |
-| `=>> {var}` | append *result* to vim variable `g:{var}` |
-| `-> {var}` | save *result* to lua variable `_G.{var}` |
-| `->> {var}` | append *result* to lua variable `_G.{var}` |
-| `@_` | store *result* in black hole register (print nothing, do nothing) |
-| `==` | `:put` *result* on new line |
+`:FnlSwiss` is the "swiss army knife" that combines the other three into one
+command. Use `< {file}` in `{redir}` to read in a file and evaluate it. Example
 
+```vim
+:'{,'}FnlSwiss <input.fnl >output.fnl (.. :the :- :end)
+```
 
-### Fennel Swiss
-
-`:FnlSwiss` is all three other commands merged into one Swiss army knife. It
-supports `[range]` like `:FnlLines` and `[{expr} ...]` like `:Fnl`, but to
-support files, as well, it uses a special `{redir}`-like syntax, which can be
-before, after, or both before and after `{redir}` (if provided).
-
-If any are specified, FnlSwiss evaluates the `[range]` first, then all
-`{file}`s, and finally any `{expr}`s.
-
-For more information, see `:help elin-commands` in neovim.
+See `:help elin-commands`.
 
 
 ## Thanks
@@ -307,6 +195,8 @@ fennel ecosystem a little brighter.
 - [~alexaandru fennel-nvim (github)](https://github.com/alexaandru/fennel-nvim)
 - [~udayvir-singh tangerine.nvim (github)](https://github.com/udayvir-singh/tangerine.nvim)
 
+---
+
 ```
                                  |
                                 -*-
@@ -325,14 +215,14 @@ fennel ecosystem a little brighter.
                                  |
 ```
 
-
 ## Todo
 
-- [ ] create `elin.init()` that can be called from `init.lua`, call from
-  `plugin/startup.lua`, as well. Keep guard.
-  - allow higher priority during INIT (if user wants to disable builtin plugins)
 - [ ] repl using buftype=prompt
+- [ ] `:checkhealth`
 - [ ] sanity macros to fix vim + vimL <- nvim + lua <- fennel pipeline nightmare
-- [ ] a separate package manager integrating with pack + elin
-- [ ] :checkhealth
+- [ ] `.elin.fnl` (or other root marker) to determine where/how to AOT compile
+  on bufwrite
+- [ ] docstrings \[-> readme/vimdoc?\]
 - [ ] better edge case handling for :Fnl commands
+- [ ] a separate package manager integrating with pack + elin
+

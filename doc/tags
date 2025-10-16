@@ -41,10 +41,10 @@ elin-commands	elin.txt	/*elin-commands*
 elin-config	elin.txt	/*elin-config*
 elin-fennel-toc	elin.txt	/*elin-fennel-toc*
 elin-happy-path	elin.txt	/*elin-happy-path*
-elin-init	elin.txt	/*elin-init*
 elin-init.lua	elin.txt	/*elin-init.lua*
 elin-lore	elin.txt	/*elin-lore*
 elin-module	elin.txt	/*elin-module*
+elin-startup	elin.txt	/*elin-startup*
 elin-thanks	elin.txt	/*elin-thanks*
 elin.txt	elin.txt	/*elin.txt*
 fennel-#	fennel-reference.txt	/*fennel-#*
