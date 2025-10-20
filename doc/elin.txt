@@ -138,7 +138,7 @@ is not a benefit to using |init.lua| over |init.fnl|.
 (elin.get-version)                                        *(elin.get-version)*
 
   Get elin's version in the format `"v{major}.{minor}.{patch}"`. The current
-  version is `v0.0.7`.
+  version is `v0.0.8`.
 
   Return: ~
   • (`string`) version
@@ -310,6 +310,7 @@ Note: :Fnl* commands gobble |bar| like commands listed in |:bar|.
 
 
 :Fnl[!] [{redir}] {expr}                                                *:Fnl*
+
   Evaluate {expr} as a fennel expression using the fennel interpreter.
 
   [!] alters how the `result` is printed. Without [!] the result is printed
@@ -328,6 +329,7 @@ Note: :Fnl* commands gobble |bar| like commands listed in |:bar|.
 
 
 :FnlFiles[!] [{redir}] {file} [{file} ...]                         *:FnlFiles*
+
   Evaluate all {file}s as one fennel expression using the fennel interpreter.
 
   [!] alters how the `result` is printed. Without [!] the result is printed
@@ -337,6 +339,7 @@ Note: :Fnl* commands gobble |bar| like commands listed in |:bar|.
 
 
 :{range}FnlLines[!] [{redir}]                                      *:FnlLines*
+
   Evaluate {range} (default current line) as a fennel chunk.
 
   [!] alters how the `result` is printed. Without [!] the result is printed
@@ -424,6 +427,12 @@ Examples: >vim
   :FnlFiles @+> ~/fennel-test.fnl
   " eval from line to end of buffer and file ~/utils.fnl; store 9 into _G.Res
   :.,$FnlSwiss -> Res < ~/utils.fnl (sum 2 3 4)
+
+
+:FnlRepl[!]                                                         *:FnlRepl*
+
+  Start a fennel repl in a split window. With [!], start it in a floating
+  window.
 
 ==============================================================================
 Lore                                                             *elin-lore*

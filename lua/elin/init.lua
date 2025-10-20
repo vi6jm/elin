@@ -1,4 +1,4 @@
-local version = "v0.0.7"
+local version = "v0.0.8"
 local fs_stat = _G.vim.uv["fs_stat"]
 local fs_fstat = _G.vim.uv["fs_fstat"]
 local fs_open = _G.vim.uv["fs_open"]

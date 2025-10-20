@@ -1,4 +1,4 @@
-(local version :v0.0.7)
+(local version :v0.0.8)
 
 (local {: fs_stat : fs_fstat : fs_open : fs_read : fs_write : fs_close}
        _G.vim.uv)

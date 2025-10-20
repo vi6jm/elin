@@ -2,7 +2,7 @@
 # elin
 
 > *Extensible Lisp Integration for Neovim*
-> **v0.0.7**
+> **v0.0.8**
 > for neovim +v0.8.0
 
 
@@ -107,7 +107,7 @@ Now just add `.fnl` files to `plugin/`, `ftplugin/`, etc. (see `elin-config`)!
       is detected
     - with `force = true` in opts, do startup even if it was already executed
 - `(elin.dofile {path} {opts})`: like `fennel.dofile()` but respect caching.
-- `(elin.get-version)`: get version; current version: `v0.0.7`
+- `(elin.get-version)`: get version; current version: `v0.0.8`
 - `(elin.enable-caching)`: enable caching; similar to `vim.loader`
 - `(elin.disable-caching)`: disable caching
 - `(elin.caching-enabled?)`: true if caching enabled; else false
@@ -169,6 +169,8 @@ command. Use `< {file}` in `{redir}` to read in a file and evaluate it. Example
 :'{,'}FnlSwiss <input.fnl >output.fnl (.. :the :- :end)
 ```
 
+- `:FnlRepl[!]`
+
 See `:help elin-commands`.
 
 
@@ -217,7 +219,6 @@ fennel ecosystem a little brighter.
 
 ## Todo
 
-- [ ] repl using buftype=prompt
 - [ ] `:checkhealth`
 - [ ] sanity macros to fix vim + vimL <- nvim + lua <- fennel pipeline nightmare
 - [ ] `.elin.fnl` (or other root marker) to determine where/how to AOT compile

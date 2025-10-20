@@ -120,4 +120,57 @@
         expr (.. ";; range\n" lines "\n" cat "\n\n;; stdin\n" expr)]
   (handle bang? matches expr))) ;; todo: eval each with file=file if relevant + result
 
-{: do-eval : do-files : do-lines : do-swiss}
+(fn repl [bang? smods]
+  (local buf (vim.api.nvim_create_buf false true))
+  (vim.api.nvim_set_option_value :bufhidden :wipe {: buf})
+  (vim.api.nvim_set_option_value :buftype :prompt {: buf})
+  (vim.api.nvim_buf_set_name buf "Fennel REPL") ;; todo incr #
+  (vim.fn.prompt_setprompt buf ">> ")
+  (local fennel (require :fennel))
+  (local repl (coroutine.create (partial fennel.repl)))
+  (vim.fn.prompt_setcallback buf
+                             (fn [text]
+                               (coroutine.resume repl
+                                                 (.. (text:gsub "\n+$" "") "\n"))))
+  (coroutine.resume repl {:error-pinpoint false
+                          :readChunk coroutine.yield
+                          :onValues (fn [vals]
+                                      (vim.api.nvim_buf_set_lines buf -2 -1
+                                                                  true
+                                                                  (if (= (length vals)
+                                                                         0)
+                                                                      [:nil]
+                                                                      vals))
+                                      (vim.api.nvim_set_option_value :modified
+                                                                     false
+                                                                     {: buf})
+                                      nil)
+                          :onError (fn [_errType err _luaSrc]
+                                     (vim.api.nvim_buf_set_lines buf -2 -1 true
+                                                                 (vim.split err
+                                                                            "\n"))
+                                     (vim.api.nvim_set_option_value :modified
+                                                                    false
+                                                                    {: buf})
+                                     nil)})
+  (if bang?
+      (let [w (vim.api.nvim_get_option_value :columns {})
+            h (vim.api.nvim_get_option_value :lines {})
+            ww (math.floor (* w 0.8))
+            wh (math.floor (* h 0.8))]
+        (vim.api.nvim_open_win buf true
+                               {:relative :editor
+                                :width ww
+                                :height wh
+                                :row (math.floor (/ (- h wh) 2))
+                                :col (math.floor (/ (- w ww) 2))
+                                :style :minimal
+                                :border :rounded}))
+      (vim.cmd.sbuffer {:args [buf] :mods smods}))
+  (vim.keymap.set :i :<C-d>
+                  "prompt_getinput(bufnr()) == '' ? '<C-Bslash><C-n>:q!<CR>' : '<C-d>'"
+                  {:buffer buf :expr true})
+  (vim.cmd.startinsert)
+  (vim.api.nvim_set_option_value :modified false {: buf}))
+
+{: do-eval : do-files : do-lines : do-swiss : repl}

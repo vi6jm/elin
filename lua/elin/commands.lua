@@ -314,4 +314,51 @@ local function do_swiss(bang_3f, count, l1, l2, _3fbuf, cmd)
   local expr1 = (";; range\n" .. lines .. "\n" .. cat .. "\n\n;; stdin\n" .. expr0)
   return handle(bang_3f, matches, expr1)
 end
-return {["do-eval"] = do_eval, ["do-files"] = do_files, ["do-lines"] = do_lines, ["do-swiss"] = do_swiss}
+local function repl(bang_3f, smods)
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_set_option_value("bufhidden", "wipe", {buf = buf})
+  vim.api.nvim_set_option_value("buftype", "prompt", {buf = buf})
+  vim.api.nvim_buf_set_name(buf, "Fennel REPL")
+  vim.fn.prompt_setprompt(buf, ">> ")
+  local fennel = require("fennel")
+  local repl0
+  local function _51_(...)
+    return fennel.repl(...)
+  end
+  repl0 = coroutine.create(_51_)
+  local function _52_(text)
+    return coroutine.resume(repl0, (text:gsub("\n+$", "") .. "\n"))
+  end
+  vim.fn.prompt_setcallback(buf, _52_)
+  local function _53_(vals)
+    local function _54_()
+      if (#vals == 0) then
+        return {"nil"}
+      else
+        return vals
+      end
+    end
+    vim.api.nvim_buf_set_lines(buf, -2, -1, true, _54_())
+    vim.api.nvim_set_option_value("modified", false, {buf = buf})
+    return nil
+  end
+  local function _55_(_errType, err, _luaSrc)
+    vim.api.nvim_buf_set_lines(buf, -2, -1, true, vim.split(err, "\n"))
+    vim.api.nvim_set_option_value("modified", false, {buf = buf})
+    return nil
+  end
+  coroutine.resume(repl0, {readChunk = coroutine.yield, onValues = _53_, onError = _55_, ["error-pinpoint"] = false})
+  if bang_3f then
+    local w = vim.api.nvim_get_option_value("columns", {})
+    local h = vim.api.nvim_get_option_value("lines", {})
+    local ww = math.floor((w * 0.8))
+    local wh = math.floor((h * 0.8))
+    vim.api.nvim_open_win(buf, true, {relative = "editor", width = ww, height = wh, row = math.floor(((h - wh) / 2)), col = math.floor(((w - ww) / 2)), style = "minimal", border = "rounded"})
+  else
+    vim.cmd.sbuffer({args = {buf}, mods = smods})
+  end
+  vim.keymap.set("i", "<C-d>", "prompt_getinput(bufnr()) == '' ? '<C-Bslash><C-n>:q!<CR>' : '<C-d>'", {buffer = buf, expr = true})
+  vim.cmd.startinsert()
+  return vim.api.nvim_set_option_value("modified", false, {buf = buf})
+end
+return {["do-eval"] = do_eval, ["do-files"] = do_files, ["do-lines"] = do_lines, ["do-swiss"] = do_swiss, repl = repl}
