@@ -122,8 +122,7 @@
                     (fs_close fh)
                     (case (_G.loadstring data)
                       f (f)))
-             _ (case (. (_G.vim.api.nvim_get_runtime_file :lua/fennel.lua false)
-                        1)
+             _ (case (. (_G.vim.api.nvim_get_runtime_file :lua/fennel.lua false) 1)
                  path (let [cpath (.. path :c)
                             fh (fs_open cpath :w 438)
                             f (loadfile path)]

@@ -24,10 +24,14 @@ For your convenience, some reference help documents, with the good graces of the
 fennel maintainers, are ported and distributed with this plugin. In neovim, use
 `:help elin-fennel-toc` to see the list of ported help docs.
 
+This readme covers the elin's basics. However, the vim docs provided at
+[doc/elin.txt](./doc/elin.txt) have more information. See `:help elin.txt` and
+enjoy using fennel to customize neovim!
+
 
 ## Installation
 
-No lua required:
+If you use vim's `pack`, no lua is required:
 
 ```bash
 export elin='https://git.sr.ht/~vi6jm/elin';
@@ -37,6 +41,12 @@ git clone $elin pack/local/start/elin;
 
 Or install it noramlly with package manager (it uses `&rtp/plugin/startup.lua`
 to bootstrap itself).
+
+Once installed, you do not need to require elin, but you can if you need to. All
+you need to do is put `.fnl` files in `plugin`, `ftplugin/`, etc. You can,
+however, require elin in `init.fnl` or `init.lua` in order to customize it. I
+recommend using caching. Fennel is noticeably slower than lua, and elin stores
+luajit byte code when caching is enabled, which is even faster than lua.
 
 
 ## Elin Module

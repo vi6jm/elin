@@ -434,6 +434,11 @@ Examples: >vim
   Start a fennel repl in a split window. With [!], start it in a floating
   window.
 
+  Use <C-l> in insert mode to move the current line to the top (it doesn't
+  clear the buffer to preserve the scrollback.
+
+  Use <C-d> in insert mode on an empty line to exit the repl.
+
 ==============================================================================
 Lore                                                             *elin-lore*
 

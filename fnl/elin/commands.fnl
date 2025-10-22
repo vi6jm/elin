@@ -120,39 +120,47 @@
         expr (.. ";; range\n" lines "\n" cat "\n\n;; stdin\n" expr)]
   (handle bang? matches expr))) ;; todo: eval each with file=file if relevant + result
 
+
+(fn promptCallback [repl text]
+  (coroutine.resume
+    repl (.. (text:gsub "\n+$" "") "\n")))
+
+(fn onValues [buf vals]
+  (vim.api.nvim_buf_set_lines buf -2 -1 true
+                              (if (= (length vals) 0)
+                                  [:nil]
+                                  (let [lines []]
+                                    (each [_ val (ipairs vals)]
+                                      (icollect [line (string.gmatch val
+                                                                     "[^\n]+")
+                                                 &into lines]
+                                        line))
+                                    lines)))
+  nil)
+
+(fn onError [buf err]
+  (vim.api.nvim_buf_set_lines buf -2 -1 true (vim.split err "\n"))
+  nil)
+
 (fn repl [bang? smods]
   (local buf (vim.api.nvim_create_buf false true))
+  (local fennel (require :fennel))
+  (vim.api.nvim_buf_set_lines buf -2 -1 true
+                              [(.. "Welcome to Fennel " fennel.version " on "
+                                   (if _G.jit _G.jit.version
+                                       (.. "PUC " _VERSION))
+                                   " in Neovim " (tostring (vim.version)) "!")])
   (vim.api.nvim_set_option_value :bufhidden :wipe {: buf})
   (vim.api.nvim_set_option_value :buftype :prompt {: buf})
-  (vim.api.nvim_buf_set_name buf "Fennel REPL") ;; todo incr #
+  (vim.api.nvim_buf_set_name buf "Fennel REPL")
+  ;; todo incr #
   (vim.fn.prompt_setprompt buf ">> ")
-  (local fennel (require :fennel))
   (local repl (coroutine.create (partial fennel.repl)))
-  (vim.fn.prompt_setcallback buf
-                             (fn [text]
-                               (coroutine.resume repl
-                                                 (.. (text:gsub "\n+$" "") "\n"))))
+  (vim.fn.prompt_setcallback buf (partial promptCallback repl))
   (coroutine.resume repl {:error-pinpoint false
                           :readChunk coroutine.yield
-                          :onValues (fn [vals]
-                                      (vim.api.nvim_buf_set_lines buf -2 -1
-                                                                  true
-                                                                  (if (= (length vals)
-                                                                         0)
-                                                                      [:nil]
-                                                                      vals))
-                                      (vim.api.nvim_set_option_value :modified
-                                                                     false
-                                                                     {: buf})
-                                      nil)
-                          :onError (fn [_errType err _luaSrc]
-                                     (vim.api.nvim_buf_set_lines buf -2 -1 true
-                                                                 (vim.split err
-                                                                            "\n"))
-                                     (vim.api.nvim_set_option_value :modified
-                                                                    false
-                                                                    {: buf})
-                                     nil)})
+                          :onValues (partial onValues buf)
+                          :onError #(onError buf $2)})
   (if bang?
       (let [w (vim.api.nvim_get_option_value :columns {})
             h (vim.api.nvim_get_option_value :lines {})
@@ -170,7 +178,8 @@
   (vim.keymap.set :i :<C-d>
                   "prompt_getinput(bufnr()) == '' ? '<C-Bslash><C-n>:q!<CR>' : '<C-d>'"
                   {:buffer buf :expr true})
+  (vim.keymap.set :i :<C-l> :<C-Bslash><C-n>zti {:buffer buf})
   (vim.cmd.startinsert)
-  (vim.api.nvim_set_option_value :modified false {: buf}))
+  nil)
 
 {: do-eval : do-files : do-lines : do-swiss : repl}
