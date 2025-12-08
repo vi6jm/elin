@@ -32,7 +32,7 @@ do
   cmd("FnlSwiss", _7_, {nargs = "*", bang = true, range = true, desc = "fennel.eval (<files [range] {expression}) to wherever"})
   local function _9_(_241)
     local _let_10_ = require("elin.commands")
-    local repl = _let_10_["repl"]
+    local repl = _let_10_.repl
     repl(_241.bang, _241.smods)
     return nil
   end

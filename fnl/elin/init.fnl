@@ -146,7 +146,9 @@
         (local init-path (.. config :/init.fnl))
         (when (fs_stat init-path)
           (_G.vim.uv.os_setenv :MYVIMRC init-path)
-          (try #(dofile init-path))))
+          (try (fn []
+                 (dofile init-path)
+                 (set _G.___elin-did-init-fnl___ true)))))
       (let [get-rtp-file _G.vim.api.nvim_get_runtime_file]
         ;; plugin INIT
         (each [_ path (ipairs (get-rtp-file :plugin/**/*.fnl true))]
