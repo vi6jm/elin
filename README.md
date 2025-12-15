@@ -229,7 +229,6 @@ fennel ecosystem a little brighter.
 
 ## Todo
 
-- [ ] `:checkhealth`
 - [ ] sanity macros to fix vim + vimL <- nvim + lua <- fennel pipeline nightmare
 - [ ] `.elin.fnl` (or other root marker) to determine where/how to AOT compile
   on bufwrite
