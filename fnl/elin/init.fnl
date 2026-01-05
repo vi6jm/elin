@@ -1,4 +1,4 @@
-(local version :v0.0.8)
+(local version :v0.0.10)
 
 (local {: fs_stat : fs_fstat : fs_open : fs_read : fs_write : fs_close}
        _G.vim.uv)
@@ -96,8 +96,8 @@
 
 (fn try [func]
   "try to execute function; print fennel.traceback on error"
-  (let [{: traceback} (require :fennel)]
-    (xpcall func (fn [err] (print traceback err) err))))
+  (local {: traceback} (require :fennel))
+  (xpcall func (fn [err] (print traceback err) err)))
 
 (fn setup [opts]
   (let [ec (or opts.enable-caching opts.enableCaching)
