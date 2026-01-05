@@ -96,8 +96,8 @@
 
 (fn try [func]
   "try to execute function; print fennel.traceback on error"
-  (let [{: traceback} (require :fennel)]
-    (xpcall func (fn [err] (print traceback err) err))))
+  (local {: traceback} (require :fennel))
+  (xpcall func (fn [err] (print traceback err) err)))
 
 (fn setup [opts]
   (let [ec (or opts.enable-caching opts.enableCaching)

@@ -197,6 +197,128 @@ is not a benefit to using |init.lua| over |init.fnl|.
   Return: ~
   • (`string`, default: `(.. (vim.fn.stdpath :cache) :elin)`) cache directory.
 
+
+==============================================================================
+Fennel to Lua                                         *fnl2lua* *elin-fnl2lua*
+
+`fnl2lua` compiles fennel files in fennel projects to lua files! It can be
+automatically run by adding |(fnl2lua.enable)| to your |init.fnl|. This is a
+submodule of `elin`, so use `(require :elin.fnl2lua)`.
+
+
+(fnl2lua.compile {file})                                   *(fnl2lua.compile)*
+
+  Compile the fennel {file} to its respective lua output using the following
+  strategy:
+    • find the project's `root` directory via |fnl2lua-markers|
+    • set output file's path relative to `(.. root "/lua/" rel-file ".lua")`
+      • `rel-file` is the path to {file} from the project's root directory
+      • a `"fnl/"` prefix is stripped from `rel-file` 
+
+  Note: {file} must be in a project with a `root` directory containing a
+        `flsproject.fnl`, `.git/` dir, or `init.fnl`.
+
+  For example, here are two directory structures (represented using a `tree`
+  output) before and after the file, `fnl/foo.fnl` is written:
+
+    Before                After ~
+    .                     .              
+    ├── flsproject.fnl    ├── flsproject.fnl
+    ├── fnl               ├── fnl           
+        └── foo.fnl       │   └── foo.fnl
+                          └── lua        
+                              └── foo.lua
+
+  Parameters: ~
+  • {file}? (`string`) the input file to compile. If `nil`, use the file
+    associated with the current buffer.
+
+
+
+(fnl2lua.set-ignore-dirs {ignores})                *(fnl2lua.set-ignore-dirs)*
+
+  Disallow |fnl2lua| in projects when the {file}'s project root is in
+  {ignores}.
+
+  The ignores list defaults to just the neovim config directory, as seen
+  below. This is highly encouraged when caching is enabled (see
+  |(elin.enable-caching)|). Otherwise, you will get duplicated code.
+  >fennel
+    (let [{: enable-caching
+          : enable-fnl2lua
+          : set-ignore-dirs} (require :elin.fnl2lua)]
+      ;; auto-cache fennel files in ~/.config/nvim
+      (enable-caching)
+      ;; and auto-compile fennel files in all fennel projects
+      (fnl2lua)
+      ;; but ignore *.fnl files in ~/.config/nvim (necessary!)
+      (set-ignore-dirs [(vim.fn.stdpath :config)]))
+<
+  Note: for clarity, you don't need to call `fnl2lua-set-ignore` as above,
+  since this is already the default.
+
+  Parameters: ~
+  • {ignores} (`string[]`) A list of root projects in which fennel files
+    should not be automatically compiled (when `fnl2lua` is enabled).
+
+
+(fnl2lua.add-ignore-dir {path})                     *(fnl2lua.add-ignore-dir)*
+(fnl2lua.remove-ignore-dir {path}                *(fnl2lua.remove-ignore-dir)*
+
+  Add/remove {path} to project {ignores}, as explained in
+  |(fnl2lua.set-ignore-dirs)|.
+
+  Parameters: ~
+  • {path} (`string`) A path to add/remove (resp.) from the list of {ignores}.
+
+
+(fnl2lua.get-ignore-dirs)                          *(fnl2lua.get-ignore-dirs)*
+
+  Get the list of ignored project directories.
+  
+  Return: ~
+  • (`string[]|nil`) list of directories that are ignored by `fnl2lua` when
+    detected as the project root
+
+
+(fnl2lua.enable [{callback}])                          *(fnl2lua.enable)*
+(fnl2lua.disable)                                     *(fnl2lua.disable)*
+
+  Enable or disable the `fnl2lua` feature. The only "strategy" at the moment
+  is to use |BufWritePost| with a `*.fnl` pattern and passing <amatch> to
+  |(fnl2lua.compile)|. To use an alternative compilation technique, pass
+  your own {callback} function.
+
+  You must add the following to your |init.fnl| to enable automatic
+  compilation: >fennel
+    ;; init.fnl
+    (let [{: enable-fnl2lua} (require :elin)]
+      (enable-fnl2lua))
+<
+  Parameters: ~
+  • {callback}? (`function`) callback to use in place of
+    |(fnl2lua.compile)|.
+
+
+                                    *fnl2lua-project-marker* *fnl2lua-markers*
+
+fnl2lua {markers} are paths that are present in the root of a project
+directory. They are represented as a list of strings. If |(fnl2lua.enable)| is
+used, each |BufWritePost| on `*.fnl` files uses these markers to determine
+where the project root is in order to automatically compile (potentially
+nested fennel files) to their lua counterparts.
+
+The default is `[:.git/ :flsproject.fnl :init.fnl]`. Change it with
+|(fnl2lua.set-project-markers)|.
+
+Note: strings that end with a `/` are strictly treated as a directory and
+      otherwise as a file.
+
+(fnl2lua.set-project-markers {markers}         *(fnl2lua.set-project-markers)*
+
+  Parameters: ~
+  • {markers} (`string[]`) project markers; directories should end with `/`.
+
 ==============================================================================
 Elin Configuration                                               *elin-config*
 
@@ -440,7 +562,7 @@ Examples: >vim
 
   Use <C-d> in insert mode on an empty line to exit the repl.
 
-=============================================================================
+==============================================================================
 Checkhealth                                                 *elin-checkhealth*
 
 :checklealth elin
@@ -496,4 +618,6 @@ https://github.com/jaawerth/fennel-nvim                            `|`
 https://github.com/gpanders/nvim-moonwalk                         `-*-`
 https://github.com/alexaandru/fennel-nvim                          `|`
 https://github.com/udayvir-singh/tangerine.nvim
- vim:tw=78:ts=2:et:ft=help:norl:
+
+
+ vim:tw=78:isk=!-~,^*,^\|,^\":ts=2:et:ft=help:norl:

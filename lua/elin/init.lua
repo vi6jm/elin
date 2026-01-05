@@ -1,10 +1,10 @@
 local version = "v0.0.8"
-local fs_stat = _G.vim.uv.fs_stat
-local fs_fstat = _G.vim.uv.fs_fstat
-local fs_open = _G.vim.uv.fs_open
-local fs_read = _G.vim.uv.fs_read
-local fs_write = _G.vim.uv.fs_write
-local fs_close = _G.vim.uv.fs_close
+local fs_stat = _G.vim.uv["fs_stat"]
+local fs_fstat = _G.vim.uv["fs_fstat"]
+local fs_open = _G.vim.uv["fs_open"]
+local fs_read = _G.vim.uv["fs_read"]
+local fs_write = _G.vim.uv["fs_write"]
+local fs_close = _G.vim.uv["fs_close"]
 local get_rtp_file = _G.vim.api.nvim_get_runtime_file
 local loaders = (_G.package.loaders or _G.package.searchers)
 local caching_enabled = false
@@ -49,9 +49,9 @@ local function get_uncache_path(cpath)
 end
 local function write_cache(path, cpath, _3fopts)
   local fh = _G.io.open(path)
-  local function close_handlers_13_(ok_14_, ...)
+  local function close_handlers_12_(ok_13_, ...)
     fh:close()
-    if ok_14_ then
+    if ok_13_ then
       return ...
     else
       return error(..., 0)
@@ -59,9 +59,9 @@ local function write_cache(path, cpath, _3fopts)
   end
   local function _5_()
     local _let_6_ = require("fennel")
-    local compile = _let_6_.compile
-    local traceback = _let_6_.traceback
-    local case_7_, case_8_
+    local compile = _let_6_["compile"]
+    local traceback = _let_6_["traceback"]
+    local _7_, _8_ = nil, nil
     local function _9_()
       return compile(fh, (_3fopts or {filename = path, correlate = true}))
     end
@@ -69,17 +69,17 @@ local function write_cache(path, cpath, _3fopts)
       werr(traceback(err))
       return err
     end
-    case_7_, case_8_ = xpcall(_9_, _10_)
-    if ((case_7_ == true) and (nil ~= case_8_)) then
-      local code = case_8_
+    _7_, _8_ = xpcall(_9_, _10_)
+    if ((_7_ == true) and (nil ~= _8_)) then
+      local code = _8_
       local fh0 = fs_open(cpath, "w", 438)
       local f = _G.loadstring(code)
       fs_write(fh0, string.dump(f, true))
       fs_close(fh0)
       return f
-    elseif (true and (nil ~= case_8_)) then
-      local _ = case_7_
-      local err = case_8_
+    elseif (true and (nil ~= _8_)) then
+      local _ = _7_
+      local err = _8_
       return nil, err
     else
       return nil
@@ -109,20 +109,20 @@ local function write_cache(path, cpath, _3fopts)
     end
     or_17_ = {traceback = _18_}
   end
-  return close_handlers_13_(_G.xpcall(_5_, or_17_.traceback))
+  return close_handlers_12_(_G.xpcall(_5_, or_17_.traceback))
 end
 local function dofile_cached(path, _3fopts)
   local cpath = get_cache_path(path)
   local cstat = fs_stat(cpath)
   local stat = fs_stat(path)
-  local case_19_
+  local _19_
   if ((cstat == nil) or (cstat.mtime.sec < stat.mtime.sec) or (cstat.mtime.nsec < stat.mtime.nsec)) then
-    case_19_ = write_cache(path, cpath, _3fopts)
+    _19_ = write_cache(path, cpath, _3fopts)
   else
-    case_19_ = _G.loadstring(readfile(cpath, 438))
+    _19_ = _G.loadstring(readfile(cpath, 438))
   end
-  if (nil ~= case_19_) then
-    local f = case_19_
+  if (nil ~= _19_) then
+    local f = _19_
     return f()
   else
     return nil
@@ -139,9 +139,9 @@ local function dofile(path, _3fopts)
 end
 local function loader(mod)
   local mod0 = mod:gsub("^[/.]+", ""):gsub("%.", "/")
-  local case_23_ = get_rtp_file(("fnl/" .. mod0 .. ".fnl" .. " fnl/" .. mod0 .. "/init.fnl"), false)[1]
-  if (nil ~= case_23_) then
-    local path = case_23_
+  local _23_ = get_rtp_file(("fnl/" .. mod0 .. ".fnl" .. " fnl/" .. mod0 .. "/init.fnl"), false)[1]
+  if (nil ~= _23_) then
+    local path = _23_
     local cpath = get_cache_path(path)
     local cstat = fs_stat(cpath)
     local stat = fs_stat(path)
@@ -156,22 +156,22 @@ local function loader(mod)
 end
 local function disable_caching()
   do
-    local tbl_26_ = {}
-    local i_27_ = 0
+    local tbl_21_ = {}
+    local i_22_ = 0
     for _, l in ipairs(loaders) do
-      local val_28_
+      local val_23_
       if (l ~= loader) then
-        val_28_ = loader
+        val_23_ = loader
       else
-        val_28_ = nil
+        val_23_ = nil
       end
-      if (nil ~= val_28_) then
-        i_27_ = (i_27_ + 1)
-        tbl_26_[i_27_] = val_28_
+      if (nil ~= val_23_) then
+        i_22_ = (i_22_ + 1)
+        tbl_21_[i_22_] = val_23_
       else
       end
     end
-    _G.package.loaders = tbl_26_
+    _G.package.loaders = tbl_21_
   end
   caching_enabled = false
   return nil
@@ -186,8 +186,8 @@ local function enable_caching()
   return nil
 end
 local function try(func)
-  local _let_29_ = require("fennel")
-  local traceback = _let_29_.traceback
+  local _local_29_ = require("fennel")
+  local traceback = _local_29_["traceback"]
   local function _30_(err)
     print(traceback, err)
     return err
@@ -217,30 +217,30 @@ local function do_startup(_3fopts)
   local did_startup = _G["___elin-did-startup___"]
   if (did_startup == nil) then
     _G["___elin-did-startup___"] = true
-    local fs_open0 = _G.vim.uv.fs_open
-    local fs_fstat0 = _G.vim.uv.fs_fstat
-    local fs_read0 = _G.vim.uv.fs_read
-    local fs_close0 = _G.vim.uv.fs_close
-    local fs_write0 = _G.vim.uv.fs_write
-    local case_33_ = _G.vim.api.nvim_get_runtime_file("lua/fennel.luac", false)[1]
-    if (nil ~= case_33_) then
-      local path = case_33_
+    local fs_open0 = _G.vim.uv["fs_open"]
+    local fs_fstat0 = _G.vim.uv["fs_fstat"]
+    local fs_read0 = _G.vim.uv["fs_read"]
+    local fs_close0 = _G.vim.uv["fs_close"]
+    local fs_write0 = _G.vim.uv["fs_write"]
+    local _33_ = _G.vim.api.nvim_get_runtime_file("lua/fennel.luac", false)[1]
+    if (nil ~= _33_) then
+      local path = _33_
       local fh = fs_open0(path, "r", 438)
       local size = assert(fs_fstat0(fh)).size
       local data = fs_read0(fh, size, 0)
       fs_close0(fh)
-      local case_34_ = _G.loadstring(data)
-      if (nil ~= case_34_) then
-        local f = case_34_
+      local _34_ = _G.loadstring(data)
+      if (nil ~= _34_) then
+        local f = _34_
         _G.package.loaded.fennel = f()
       else
         _G.package.loaded.fennel = nil
       end
     else
-      local _ = case_33_
-      local case_36_ = _G.vim.api.nvim_get_runtime_file("lua/fennel.lua", false)[1]
-      if (nil ~= case_36_) then
-        local path = case_36_
+      local _ = _33_
+      local _36_ = _G.vim.api.nvim_get_runtime_file("lua/fennel.lua", false)[1]
+      if (nil ~= _36_) then
+        local path = _36_
         local cpath = (path .. "c")
         local fh = fs_open0(cpath, "w", 438)
         local f = loadfile(path)
@@ -248,7 +248,7 @@ local function do_startup(_3fopts)
         fs_close0(fh)
         _G.package.loaded.fennel = f()
       else
-        local _0 = case_36_
+        local _0 = _36_
         print("Fatal: unable to find fennel.lua module")
         _G.package.loaded.fennel = nil
       end
@@ -286,9 +286,9 @@ local function do_startup(_3fopts)
     for _, path in ipairs(get_rtp_file0("lsp/*.fnl", true)) do
       local function _44_()
         local file = _G.io.open(path)
-        local function close_handlers_13_(ok_14_, ...)
+        local function close_handlers_12_(ok_13_, ...)
           file:close()
-          if ok_14_ then
+          if ok_13_ then
             return ...
           else
             return error(..., 0)
@@ -323,7 +323,7 @@ local function do_startup(_3fopts)
           end
           or_52_ = {traceback = _53_}
         end
-        return close_handlers_13_(_G.xpcall(_46_, or_52_.traceback))
+        return close_handlers_12_(_G.xpcall(_46_, or_52_.traceback))
       end
       try(_44_)
     end

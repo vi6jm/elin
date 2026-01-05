@@ -28,6 +28,9 @@ This readme covers the elin's basics. However, the vim docs provided at
 [doc/elin.txt](./doc/elin.txt) have more information. See `:help elin.txt` and
 enjoy using fennel to customize neovim!
 
+Elin can also automatically compile fennel files in fennel projects to lua
+files.
+
 
 ## Installation
 
@@ -65,10 +68,10 @@ This is all I do, and I am happy; therefore, this will make you happy, too:
 ;; init.fnl
 (let [{:enable nvim-cache} _G.vim.loader
       {:enable-caching elin-cache} (require :elin)
-      {:setup bp-setup (require :backpack)]
+      {:enable fnl2lua-enable (require :elin.fnl2lua)]
   (nvim-cache) ;; enable .lua caching
   (elin-cache) ;; enable .fnl caching
-  (bp-setup))  ;; set up pack plugins
+  (fnl2lua-enable) ;; enable fnl->lua project compilation
 nil
 ```
 
@@ -184,6 +187,23 @@ command. Use `< {file}` in `{redir}` to read in a file and evaluate it. Example
 See `:help elin-commands`.
 
 
+## fnl2lua
+
+Besides handling neovim-specific fennel configuration, elin can compile fennel
+projects to a `lua/` output directory in the project root. See `:help fnl2lua`
+for additional information, such as how fnl2lua detects project roots and how
+the compilation system works.
+
+fnl2lua is disabled by default, but you can easily enable it by adding the
+following:
+
+```fennel
+;; init.fnl
+(let [{:enable enable-fnl2lua} (require :elin.fnl2lua)]
+  (enable-fnl2lua))
+```
+
+
 ## Thanks
 
 A special thanks to the fennel contributors and hotpot.nvim for the hard work
@@ -229,10 +249,8 @@ fennel ecosystem a little brighter.
 
 ## Todo
 
-- [ ] sanity macros to fix vim + vimL <- nvim + lua <- fennel pipeline nightmare
-- [ ] `.elin.fnl` (or other root marker) to determine where/how to AOT compile
-  on bufwrite
-- [ ] docstrings \[-> readme/vimdoc?\]
-- [ ] better edge case handling for :Fnl commands
-- [ ] a separate package manager integrating with pack + elin
+- [ ] fnl2lua: root marker relativity (eg `fnl/init.fnl;-1`)
+- [ ] fnl2lua: different output (other than `{root}/lua/`)
+- [ ] sanity macros: fix vim + vimL <- nvim + lua <- fennel pipeline nightmare
+- [ ] package manager in fennel?
 
