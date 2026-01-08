@@ -139,7 +139,13 @@ local function handle_matches(bang_3f, matches, result)
     else
       result0 = result
     end
-    _G.vim.api.nvim_buf_set_lines(0, line0, line0, true, result0)
+    local result1
+    if (type(result0) == "table") then
+      result1 = result0
+    else
+      result1 = {result0}
+    end
+    _G.vim.api.nvim_buf_set_lines(0, line0, line0, true, result1)
   else
     local _ = matches
     print(view_result(bang_3f, result))
@@ -147,19 +153,19 @@ local function handle_matches(bang_3f, matches, result)
   return nil
 end
 local function handle(bang_3f, matches, expr)
-  local _local_22_ = require("fennel")
-  local eval = _local_22_["eval"]
-  local _23_, _24_ = nil, nil
-  local function _25_()
+  local _local_23_ = require("fennel")
+  local eval = _local_23_["eval"]
+  local _24_, _25_ = nil, nil
+  local function _26_()
     return eval(expr, {filename = "stdin", ["error-pinpoint"] = false})
   end
-  local function _26_(err)
+  local function _27_(err)
     werr(err)
     return err
   end
-  _23_, _24_ = xpcall(_25_, _26_)
-  if ((_23_ == true) and (nil ~= _24_)) then
-    local result = _24_
+  _24_, _25_ = xpcall(_26_, _27_)
+  if ((_24_ == true) and (nil ~= _25_)) then
+    local result = _25_
     return handle_matches(bang_3f, matches, result)
   else
     return nil
@@ -170,7 +176,7 @@ local function do_eval(bang_3f, cmd)
 end
 local function do_files(bang_3f, files)
   local expr
-  local _28_
+  local _29_
   do
     local tbl_21_ = {}
     local i_22_ = 0
@@ -187,34 +193,34 @@ local function do_files(bang_3f, files)
             return error(..., 0)
           end
         end
-        local function _30_()
+        local function _31_()
           return (";; " .. fname0 .. "\n" .. file0:read("*a"))
         end
-        local _32_
+        local _33_
         do
-          local t_31_ = _G
-          if (nil ~= t_31_) then
-            t_31_ = t_31_.package
+          local t_32_ = _G
+          if (nil ~= t_32_) then
+            t_32_ = t_32_.package
           else
           end
-          if (nil ~= t_31_) then
-            t_31_ = t_31_.loaded
+          if (nil ~= t_32_) then
+            t_32_ = t_32_.loaded
           else
           end
-          if (nil ~= t_31_) then
-            t_31_ = t_31_.fennel
+          if (nil ~= t_32_) then
+            t_32_ = t_32_.fennel
           else
           end
-          _32_ = t_31_
+          _33_ = t_32_
         end
-        local or_36_ = _32_ or _G.debug
-        if not or_36_ then
-          local function _37_()
+        local or_37_ = _33_ or _G.debug
+        if not or_37_ then
+          local function _38_()
             return ""
           end
-          or_36_ = {traceback = _37_}
+          or_37_ = {traceback = _38_}
         end
-        val_23_ = close_handlers_12_(_G.xpcall(_30_, or_36_.traceback))
+        val_23_ = close_handlers_12_(_G.xpcall(_31_, or_37_.traceback))
       end
       if (nil ~= val_23_) then
         i_22_ = (i_22_ + 1)
@@ -222,9 +228,9 @@ local function do_files(bang_3f, files)
       else
       end
     end
-    _28_ = tbl_21_
+    _29_ = tbl_21_
   end
-  expr = _G.table.concat(_28_, "\n")
+  expr = _G.table.concat(_29_, "\n")
   return handle(bang_3f, cmd_2a:match(expr))
 end
 local function do_lines(bang_3f, line1, line2, _3fbuf, cmd)
@@ -249,7 +255,7 @@ local function do_swiss(bang_3f, count, l1, l2, _3fbuf, cmd)
     files0 = tbl_19_
   end
   local cat
-  local _39_
+  local _40_
   do
     local tbl_21_ = {}
     local i_22_ = 0
@@ -266,34 +272,34 @@ local function do_swiss(bang_3f, count, l1, l2, _3fbuf, cmd)
             return error(..., 0)
           end
         end
-        local function _41_()
+        local function _42_()
           return (";; " .. fname0 .. "\n" .. file0:read("*a"))
         end
-        local _43_
+        local _44_
         do
-          local t_42_ = _G
-          if (nil ~= t_42_) then
-            t_42_ = t_42_.package
+          local t_43_ = _G
+          if (nil ~= t_43_) then
+            t_43_ = t_43_.package
           else
           end
-          if (nil ~= t_42_) then
-            t_42_ = t_42_.loaded
+          if (nil ~= t_43_) then
+            t_43_ = t_43_.loaded
           else
           end
-          if (nil ~= t_42_) then
-            t_42_ = t_42_.fennel
+          if (nil ~= t_43_) then
+            t_43_ = t_43_.fennel
           else
           end
-          _43_ = t_42_
+          _44_ = t_43_
         end
-        local or_47_ = _43_ or _G.debug
-        if not or_47_ then
-          local function _48_()
+        local or_48_ = _44_ or _G.debug
+        if not or_48_ then
+          local function _49_()
             return ""
           end
-          or_47_ = {traceback = _48_}
+          or_48_ = {traceback = _49_}
         end
-        val_23_ = close_handlers_12_(_G.xpcall(_41_, or_47_.traceback))
+        val_23_ = close_handlers_12_(_G.xpcall(_42_, or_48_.traceback))
       end
       if (nil ~= val_23_) then
         i_22_ = (i_22_ + 1)
@@ -301,9 +307,9 @@ local function do_swiss(bang_3f, count, l1, l2, _3fbuf, cmd)
       else
       end
     end
-    _39_ = tbl_21_
+    _40_ = tbl_21_
   end
-  cat = _G.table.concat(_39_, "\n")
+  cat = _G.table.concat(_40_, "\n")
   local buf = (_3fbuf or 0)
   local lines
   if (count <= 0) then
@@ -318,7 +324,7 @@ local function promptCallback(repl, text)
   return coroutine.resume(repl, (text:gsub("\n+$", "") .. "\n"))
 end
 local function onValues(buf, vals)
-  local function _51_()
+  local function _52_()
     if (#vals == 0) then
       return {"nil"}
     else
@@ -330,11 +336,10 @@ local function onValues(buf, vals)
           table.insert(tbl_19_, val_20_)
         end
       end
-      vim.print(lines)
       return lines
     end
   end
-  vim.api.nvim_buf_set_lines(buf, -2, -1, true, _51_())
+  vim.api.nvim_buf_set_lines(buf, -2, -1, true, _52_())
   return nil
 end
 local function onError(buf, err)
@@ -344,33 +349,33 @@ end
 local function repl(bang_3f, smods)
   local buf = vim.api.nvim_create_buf(false, true)
   local fennel = require("fennel")
-  local _52_
+  local _53_
   if _G.jit then
-    _52_ = _G.jit.version
+    _53_ = _G.jit.version
   else
-    _52_ = ("PUC " .. _VERSION)
+    _53_ = ("PUC " .. _VERSION)
   end
-  vim.api.nvim_buf_set_lines(buf, -2, -1, true, {("Welcome to Fennel " .. fennel.version .. " on " .. _52_ .. " in Neovim " .. tostring(vim.version()) .. "!")})
+  vim.api.nvim_buf_set_lines(buf, -2, -1, true, {("Welcome to Fennel " .. fennel.version .. " on " .. _53_ .. " in Neovim " .. tostring(vim.version()) .. "!")})
   vim.api.nvim_set_option_value("bufhidden", "wipe", {buf = buf})
   vim.api.nvim_set_option_value("buftype", "prompt", {buf = buf})
   vim.api.nvim_buf_set_name(buf, "Fennel REPL")
   vim.fn.prompt_setprompt(buf, ">> ")
   local repl0
-  local function _54_(...)
+  local function _55_(...)
     return fennel.repl(...)
   end
-  repl0 = coroutine.create(_54_)
-  local function _55_(...)
+  repl0 = coroutine.create(_55_)
+  local function _56_(...)
     return promptCallback(repl0, ...)
   end
-  vim.fn.prompt_setcallback(buf, _55_)
-  local function _56_(...)
+  vim.fn.prompt_setcallback(buf, _56_)
+  local function _57_(...)
     return onValues(buf, ...)
   end
-  local function _57_(_241, _242)
+  local function _58_(_241, _242)
     return onError(buf, _242)
   end
-  coroutine.resume(repl0, {readChunk = coroutine.yield, onValues = _56_, onError = _57_, ["error-pinpoint"] = false})
+  coroutine.resume(repl0, {readChunk = coroutine.yield, onValues = _57_, onError = _58_, ["error-pinpoint"] = false})
   if bang_3f then
     local w = vim.api.nvim_get_option_value("columns", {})
     local h = vim.api.nvim_get_option_value("lines", {})

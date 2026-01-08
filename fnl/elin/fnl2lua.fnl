@@ -1,5 +1,5 @@
 
-(var ignore-dirs [(vim.fn.stdpath :config)])
+(var ignore-dirs [(_G.vim.fn.stdpath :config)])
 (var markers [:.git/ :flsproject.fnl :init.fnl])
 
 (fn set-ignore-dirs [ignores]
@@ -38,18 +38,18 @@
 (fn _fs-dir-has-file [source file]
   "Check if a file (dir if ends with '/') exists in the source dir"
   (let [path (.. source "/" file)
-        is-dir? (vim.endswith file "/")]
-    (case (vim.uv.fs_stat path)
+        is-dir? (_G.vim.endswith file "/")]
+    (case (_G.vim.uv.fs_stat path)
       nil false
       stat (if is-dir?
                (= stat.type :directory)
                (and (or (= stat.type :file) (= stat.type :link))
-                    (not= nil (vim.uv.fs_access path :R)))))))
+                    (not= nil (_G.vim.uv.fs_access path :R)))))))
 
 (fn _fs-last-root [source]
   "Find the project root directory by searching for markers in parent directories"
   (var res nil)
-  (each [dir (vim.fs.parents source) :until res]
+  (each [dir (_G.vim.fs.parents source) :until res]
     (each [_ marker (ipairs markers) :until res]
       (when (_fs-dir-has-file dir marker)
         (set res dir))))
@@ -59,19 +59,19 @@
   "write error message using nvim_echo"
   (_G.vim.api.nvim_echo [[msg]] true {:err true :kind :errormsg}))
 
-(fn compile [file] ; Q: should there be another 'strategy' or more?
+(fn compile [file]
   "Compile the fennel file to its respective lua output"
-  (let [filename (vim.fs.abspath file)
-        dir (vim.fs.dirname filename)]
+  (let [filename (_G.vim.fs.abspath file)
+        dir (_G.vim.fs.dirname filename)]
     (case (_fs-last-root dir)
-      root (when (not (vim.list_contains ignore-dirs root))
+      root (when (not (_G.vim.list_contains ignore-dirs root))
              (let [rel-file (filename:sub (+ 2 (length root)))
                    rel-file (rel-file:gsub :^fnl/ "")
                    rel-file (rel-file:gsub "%.fnl$" "")
                    rel-file (.. rel-file :.lua)
                    fout-name (.. root :/lua/ rel-file)
                    {: compile : traceback} (require :fennel)]
-               (vim.fn.mkdir (vim.fs.dirname fout-name) :p)
+               (_G.vim.fn.mkdir (_G.vim.fs.dirname fout-name) :p)
                (with-open [fin (io.open filename) fout (io.open fout-name :w)]
                  (case (xpcall #(compile fin {: filename})
                                (fn [err] (werr (traceback err)) err))
@@ -82,18 +82,14 @@
 (fn enable [callback?]
   "Enable the fnl2lua via ~ BufWritePost *.fnl Fnl (compile <q-amatch>)"
   (let [group (_G.vim.api.nvim_create_augroup :elin_fnl2lua {})
-        callback (or callback? compile)]
-    (set _G.___elin-fnl2lua-auid___ group)
-    (_G.vim.api.nvim_create_autocmd :BufWritePost
-                                    {:pattern :*.fnl
-                                     : group
-                                     :callback #(callback (vim.fs.normalize $1.file))})))
+        pattern :*.fnl
+        cb (or callback? compile)
+        callback #(cb (_G.vim.fs.normalize $1.file))]
+    (_G.vim.api.nvim_create_autocmd :BufWritePost {: pattern : group : callback})))
 
 (fn disable []
   "Disable the fnl2lua feature by clearing the autocmd group."
-  (when _G.___elin-fnl2lua-auid___
-    _G.vim.api.nvim_clear_autocmd {:group _G.___elin-fnl2lua-auid___})
-  (set _G.___elin-fnl2lua-auid___ nil))
+  (_G.vim.api.nvim_clear_autocmds {:group :elin_fnl2lua}))
 
 (fn set-project-markers [m]
   "Set project markers to help determine the root of a project directory"

@@ -1,4 +1,4 @@
-local ignore_dirs = {vim.fn.stdpath("config")}
+local ignore_dirs = {_G.vim.fn.stdpath("config")}
 local markers = {".git/", "flsproject.fnl", "init.fnl"}
 local function set_ignore_dirs(ignores)
   do
@@ -65,8 +65,8 @@ local function get_ignore_dirs()
 end
 local function _fs_dir_has_file(source, file)
   local path = (source .. "/" .. file)
-  local is_dir_3f = vim.endswith(file, "/")
-  local _11_ = vim.uv.fs_stat(path)
+  local is_dir_3f = _G.vim.endswith(file, "/")
+  local _11_ = _G.vim.uv.fs_stat(path)
   if (_11_ == nil) then
     return false
   elseif (nil ~= _11_) then
@@ -74,7 +74,7 @@ local function _fs_dir_has_file(source, file)
     if is_dir_3f then
       return (stat.type == "directory")
     else
-      return (((stat.type == "file") or (stat.type == "link")) and (nil ~= vim.uv.fs_access(path, "R")))
+      return (((stat.type == "file") or (stat.type == "link")) and (nil ~= _G.vim.uv.fs_access(path, "R")))
     end
   else
     return nil
@@ -82,7 +82,7 @@ local function _fs_dir_has_file(source, file)
 end
 local function _fs_last_root(source)
   local res = nil
-  for dir in vim.fs.parents(source) do
+  for dir in _G.vim.fs.parents(source) do
     if res then break end
     for _, marker in ipairs(markers) do
       if res then break end
@@ -99,12 +99,12 @@ local function werr(msg)
 end
 local function compile(file)
   do
-    local filename = vim.fs.abspath(file)
-    local dir = vim.fs.dirname(filename)
+    local filename = _G.vim.fs.abspath(file)
+    local dir = _G.vim.fs.dirname(filename)
     local _15_ = _fs_last_root(dir)
     if (nil ~= _15_) then
       local root = _15_
-      if not vim.list_contains(ignore_dirs, root) then
+      if not _G.vim.list_contains(ignore_dirs, root) then
         local rel_file = filename:sub((2 + #root))
         local rel_file0 = rel_file:gsub("^fnl/", "")
         local rel_file1 = rel_file0:gsub("%.fnl$", "")
@@ -113,7 +113,7 @@ local function compile(file)
         local _let_16_ = require("fennel")
         local compile0 = _let_16_["compile"]
         local traceback = _let_16_["traceback"]
-        vim.fn.mkdir(vim.fs.dirname(fout_name), "p")
+        _G.vim.fn.mkdir(_G.vim.fs.dirname(fout_name), "p")
         local fin = io.open(filename)
         local fout = io.open(fout_name, "w")
         local function close_handlers_12_(ok_13_, ...)
@@ -180,21 +180,17 @@ local function compile(file)
 end
 local function enable(callback_3f)
   local group = _G.vim.api.nvim_create_augroup("elin_fnl2lua", {})
-  local callback = (callback_3f or compile)
-  _G["___elin-fnl2lua-auid___"] = group
+  local pattern = "*.fnl"
+  local cb = (callback_3f or compile)
+  local callback
   local function _33_(_241)
-    return callback(vim.fs.normalize(_241.file))
+    return cb(_G.vim.fs.normalize(_241.file))
   end
-  return _G.vim.api.nvim_create_autocmd("BufWritePost", {pattern = "*.fnl", group = group, callback = _33_})
+  callback = _33_
+  return _G.vim.api.nvim_create_autocmd("BufWritePost", {pattern = pattern, group = group, callback = callback})
 end
 local function disable()
-  if _G["___elin-fnl2lua-auid___"] then
-    do local _ = _G.vim.api.nvim_clear_autocmd end
-    do local _ = {group = _G["___elin-fnl2lua-auid___"]} end
-  else
-  end
-  _G["___elin-fnl2lua-auid___"] = nil
-  return nil
+  return _G.vim.api.nvim_clear_autocmds({group = "elin_fnl2lua"})
 end
 local function set_project_markers(m)
   if (type(m) == "table") then

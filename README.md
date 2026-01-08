@@ -249,7 +249,9 @@ fennel ecosystem a little brighter.
 
 ## Todo
 
+- [ ] Allow :Fnl (etc) support for lists(using `--` instead of `==`)
 - [ ] fnl2lua: root marker relativity (eg `fnl/init.fnl;-1`)
+- [ ] restore backup on failed compilation
 - [ ] fnl2lua: different output (other than `{root}/lua/`)
 - [ ] sanity macros: fix vim + vimL <- nvim + lua <- fennel pipeline nightmare
 - [ ] package manager in fennel?

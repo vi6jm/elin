@@ -67,7 +67,8 @@
                         0
                         (+ (. (_G.vim.api.nvim_win_get_cursor 0) 1) 1))
                  line (_G.math.min line (_G.vim.api.nvim_buf_line_count 0))
-                 result (if bang? (.. "; " (result:gsub "\n" "\n; ")) result)]
+                 result (if bang? (.. "; " (result:gsub "\n" "\n; ")) result)
+                 result (if (= (type result) :table) result [result])]
              (_G.vim.api.nvim_buf_set_lines 0 line line true result))
     _ (print (view-result bang? result)))
   nil)
